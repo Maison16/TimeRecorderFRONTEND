@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { UserProfile } from '../interfaces/UserProfile'
 import { apiURL } from '../config'
+import DayOffCalendar from "../components/DayOffCalendar";
 
 const Dashboard: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -37,6 +38,8 @@ useEffect(() => {
     <div className="p-4">
       <h1 className="text-xl font-bold">Hello, {user.name} {user.surname}!</h1>
       <p>Email: {user.email}</p>
+              <h2>Day Off Calendar</h2>
+              <DayOffCalendar />
     </div>
   )
 }
