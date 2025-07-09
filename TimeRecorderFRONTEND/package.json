@@ -17,7 +17,9 @@
     "react": "^19.1.0",
     "react-big-calendar": "^1.19.4",
     "react-datepicker": "^8.4.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-select": "^5.10.1",
+    "react-tabs": "^6.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
