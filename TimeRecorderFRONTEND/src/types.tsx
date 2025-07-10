@@ -16,6 +16,6 @@ export interface DayOffRequestDto {
   status: DayOffStatus;
 }
 export interface CalendarEvent extends RBCEvent {
-  id: string;
+  id: number;
   status: DayOffStatus;
 }
