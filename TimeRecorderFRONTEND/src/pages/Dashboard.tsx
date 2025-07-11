@@ -1,48 +1,33 @@
-import { useEffect, useState } from 'react'
-import type { UserProfile } from '../enums/UserProfile'
-import { apiURL } from '../config'
-import DayOffCalendar from "../components/DayOffCalendar";
+import { useEffect, useState } from 'react';
+import type { UserProfile } from '../enums/UserProfile';
+import { apiURL } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard: React.FC = () => {
-  const [user, setUser] = useState<UserProfile | null>(null)
+  const [user, setUser] = useState<UserProfile | null>(null);
 
-useEffect(() => {
-  const token = localStorage.getItem('access_token');
-  console.log('Access token:', token);
-  if (!token) return;
+  useEffect(() => {
+    fetch(`${apiURL}/api/auth/check`, {
+      method: 'GET',
+      credentials: 'include',
+    })
+      .then(res => res.json())
+      .then(data => {
+        console.log("✅ Auth check:", data);
+      })
+      .catch(err => {
+        console.error("❌ Auth check error:", err);
+      });
+  } , []);
 
-  fetch(`${apiURL}/api/User/profile`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
-  .then(async res => {
-    console.log('Response status:', res.status);
-    if (!res.ok) {
-      const errorBody = await res.text();
-      console.error('Error body:', errorBody);
-      throw new Error('Not authorized');
-    }
-    return res.json();
-  })
-  .then(data => setUser(data))
-  .catch(err => console.error('Fetch error:', err));
-  console.log('Access token:', token);
-}, []);
+if (!user) return <div><LoadingSpinner /></div>;
 
+return (
+  <div className="p-4 mt-5">
+    <h1 className="text-xl font-bold">Hello, {user.name} {user.surname}!</h1>
+    <p>Email: {user.email}</p>
+  </div>
+);
+};
 
-
-  if (!user) return <div><LoadingSpinner/></div>
-
-  return (
-    <div className="p-4 mt-5">
-      <h1 className="text-xl font-bold">Hello, {user.name} {user.surname}!</h1>
-      <p>Email: {user.email}</p>
-              <h2>Day Off Calendar</h2>
-              <DayOffCalendar />
-    </div>
-  )
-}
-
-export default Dashboard
+export default Dashboard;

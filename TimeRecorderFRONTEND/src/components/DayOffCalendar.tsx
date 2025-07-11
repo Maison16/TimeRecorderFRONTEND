@@ -101,6 +101,8 @@ const DayOffCalendar = () => {
 
   const submitSelectedRange = async () => {
     if (!selectedRange) return;
+    try
+    {
     await api.post("api/DayOff", null, {
       params: {
         dateStart: formatDate(selectedRange.start),
@@ -108,6 +110,11 @@ const DayOffCalendar = () => {
         reason,
       },
     });
+  }
+  catch (e) {
+      alert("Error during request. Please choose another date range.");
+      return;
+  }
     setReason("");
     setSelectedRange(null);
     fetchMyEvents();
@@ -123,7 +130,7 @@ const DayOffCalendar = () => {
         fetchEventsFor(selectedUser.id);
       }
     } catch (e) {
-      alert("Błąd podczas anulowania zgłoszenia.");
+      alert("Error during canel.");
     }
   };
 
