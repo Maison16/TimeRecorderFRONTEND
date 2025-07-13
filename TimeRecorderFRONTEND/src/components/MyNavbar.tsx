@@ -1,6 +1,6 @@
 // components/MyNavbar.tsx (lub NavBar.tsx, w zależności od Twojej nazwy pliku)
 import React from 'react';
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
+import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import type { AccountInfo } from '@azure/msal-browser';
 import { NavLink } from 'react-router-dom';
 
@@ -12,10 +12,10 @@ interface NavBarProps {
 }
 
 const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRoles }) => {
-  const user = accounts[0]; 
-  
+  const user = accounts[0];
+
   // Rola admina będzie teraz pochodzić z props.userRoles
-  const isAdmin = userRoles.includes("Admin"); 
+  const isAdmin = userRoles.includes("Admin");
   const isLoggedIn = accounts.length > 0;
   // Do celów debugowania (możesz usunąć po upewnieniu się, że działa)
   console.log("MyNavbar - Current user roles:", userRoles);
@@ -37,28 +37,36 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
-          {isLoggedIn && (
-            <NavLink
-              to="/dayoff"
-              className={({ isActive }) => `nav-link ${isActive ? 'active text-white' : ''}`}
-            >
-              Day Off Calendar
-            </NavLink>
-          )}
-            {isAdmin && (
+            {isLoggedIn && (
               <NavLink
-                to="/admin"
+                to="/dayoff"
                 className={({ isActive }) => `nav-link ${isActive ? 'active text-white' : ''}`}
               >
-                Admin Panel
+                Day Off Calendar
               </NavLink>
+            )}
+            {isAdmin && (
+              <NavDropdown title="Admin Panel" id="admin-panel-dropdown">
+                <NavDropdown.Item as={NavLink} to="/pendingAdmin">
+                  Pending DayOffs
+                </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/deleteDayOff">
+                  Delete DayOffs
+                </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/admin/projects">
+                  Manage Projects
+                </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/admin/user-projects">
+                  Manage User Projects
+                </NavDropdown.Item>
+              </NavDropdown>
             )}
           </Nav>
           <Nav className="ms-auto">
             {accounts.length > 0 ? (
               <>
                 <Navbar.Text className="me-3">
-                  Welcome, {user?.name || "User"}! 
+                  Welcome, {user?.name || "User"}!
                 </Navbar.Text>
                 <Button variant="outline-light" onClick={onLogout}>Logout</Button>
               </>
