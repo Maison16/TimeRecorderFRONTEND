@@ -1,29 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { PublicClientApplication } from '@azure/msal-browser'; // Potrzebne do `msalInstance`
-import { msalConfig } from './auth/AuthConfig'; // Upewnij się, że to ścieżka do Twojej konfiguracji MSAL
+import { PublicClientApplication } from '@azure/msal-browser';
+import { msalConfig } from './auth/AuthConfig';
 import axios from 'axios';
-import { apiURL } from './config'; // Upewnij się, że to ścieżka do Twojego apiURL
-
-import NavBar from './components/MyNavbar'; // Zakładam, że Twoja nazwa to MyNavbar
+import { apiURL } from './config';
+import DeleteDayOffAdmin from './pages/admin/DeleteDayOffAdmin';
+import NavBar from './components/MyNavbar';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import CalendarDayOffPage from './pages/CalendarDayOffPage';
-import AdminPanel from './pages/AdminPanel'; // Nowy komponent strony Admin Panel
-import Loading from './components/LoadingSpinner'; // Załóżmy, że masz komponent Loading
+import PendingDayOffAdmin from './pages/admin/PendingDayOffAdmin';
+import Loading from './components/LoadingSpinner';
+import AdminProjectsPage from './pages/admin/AdminProjectsPage';
+import AdminUserProjectsPage from './pages/admin/AdminUserProjectsPage';
 
-const msalInstance = new PublicClientApplication(msalConfig); // Musisz zdefiniować instancję MSAL tutaj
+const msalInstance = new PublicClientApplication(msalConfig);
 
 const App: React.FC = () => {
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
-  const isAuthenticated = useIsAuthenticated(); // Hook do sprawdzania, czy użytkownik jest zalogowany
+  const isAuthenticated = useIsAuthenticated();
 
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isLoadingUserRoles, setIsLoadingUserRoles] = useState(true);
 
-  // --- Funkcja do pobierania ról z backendu ---
+  //Funkcja do pobierania ról z backendu 
   const fetchUserRoles = async () => {
     try {
       setIsLoadingUserRoles(true);
@@ -32,60 +34,60 @@ const App: React.FC = () => {
       if (response.data && response.data.roles) {
         setUserRoles(response.data.roles);
       } else {
-        setUserRoles([]); // Upewnij się, że roles są puste, jeśli backend nic nie zwróci
+        setUserRoles([]);
       }
     } catch (error) {
       console.error("Error fetching user roles from backend:", error);
-      setUserRoles([]); // W przypadku błędu role są puste
+      setUserRoles([]);
     } finally {
       setIsLoadingUserRoles(false);
     }
   };
 
-  // --- Efekt do pobierania ról po zalogowaniu ---
+  //Efekt do pobierania ról po zalogowaniu
   useEffect(() => {
     if (isAuthenticated) {
       fetchUserRoles();
-    } else {
-      // Resetuj stan ról i ładowania, gdy użytkownik nie jest zalogowany
+    }
+    else {
       setUserRoles([]);
       setIsLoadingUserRoles(false);
     }
-  }, [isAuthenticated]); // Wywołaj ten efekt, gdy zmieni się stan uwierzytelnienia
+  }, [isAuthenticated]);
 
   const handleLogin = () => {
     instance.loginPopup({
       scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all']
     })
-    .then(async (response) => {
-      const account = response.account;
+      .then(async (response) => {
+        const account = response.account;
 
-      if (account) {
-        try {
-          const tokenResponse = await instance.acquireTokenSilent({
-            account,
-            scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all'],
-          });
-          console.log('Token acquired:', tokenResponse.accessToken);
-          
-          await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenResponse.accessToken }),
-            credentials: 'include',
-          });
+        if (account) {
+          try {
+            const tokenResponse = await instance.acquireTokenSilent({
+              account,
+              scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all'],
+            });
+            console.log('Token acquired:', tokenResponse.accessToken);
 
-          console.log('Login successful, backend should set HttpOnly cookie');
-          await fetchUserRoles(); 
-          navigate('/dashboard');
-        } catch (tokenError) {
-          console.error('Token acquisition error:', tokenError);
+            await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token: tokenResponse.accessToken }),
+              credentials: 'include',
+            });
+
+            console.log('Login successful, backend should set HttpOnly cookie');
+            await fetchUserRoles();
+            navigate('/dashboard');
+          } catch (tokenError) {
+            console.error('Token acquisition error:', tokenError);
+          }
         }
-      }
-    })
-    .catch(error => {
-      console.error('Login error:', error);
-    });
+      })
+      .catch(error => {
+        console.error('Login error:', error);
+      });
   };
 
   const handleLogout = () => {
@@ -97,42 +99,49 @@ const App: React.FC = () => {
         postLogoutRedirectUri: "/",
         onRedirectNavigate: () => false,
       });
-      setUserRoles([]); 
-      setIsLoadingUserRoles(false); 
+      setUserRoles([]);
+      setIsLoadingUserRoles(false);
       navigate('/');
     });
   };
 
-  // Sprawdzenie roli Admin
   const isAdmin = userRoles.includes("Admin");
 
-  // --- Obsługa stanu ładowania ról ---
-  // Jeśli użytkownik jest zalogowany i role są jeszcze ładowane, wyświetl komponent Loading
+  //Obsługa stanu ładowania ról
   if (isAuthenticated && isLoadingUserRoles) {
     return <Loading />;
   }
 
   return (
     <>
-      {/* Przekazujemy userRoles do NavBar */}
       <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={userRoles} />
       <Routes>
         <Route path="/" element={<Home />} />
-        
-        {/* Zabezpieczenie tras */}
-        <Route 
-          path="/dashboard" 
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/" />} 
+        <Route
+          path="/dashboard"
+          element={isAuthenticated ? <Dashboard /> : <Navigate to="/" />}
         />
-        <Route 
-          path="/dayoff" 
-          element={isAuthenticated ? <CalendarDayOffPage /> : <Navigate to="/" />} 
+        <Route
+          path="/dayoff"
+          element={isAuthenticated ? <CalendarDayOffPage /> : <Navigate to="/" />}
         />
-        <Route 
-          path="/admin" 
-          element={isAuthenticated && isAdmin ? <AdminPanel /> : <Navigate to="/" />} 
+        <Route
+          path="/pendingAdmin"
+          element={isAuthenticated && isAdmin ? <PendingDayOffAdmin /> : <Navigate to="/" />}
         />
-        
+        .
+        <Route
+          path="/deleteDayOff"
+          element={isAuthenticated && isAdmin ? <DeleteDayOffAdmin /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/admin/projects"
+          element={isAuthenticated && isAdmin ? <AdminProjectsPage /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/admin/user-projects"
+          element={isAuthenticated && isAdmin ? <AdminUserProjectsPage /> : <Navigate to="/" />}
+        />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>

@@ -14,10 +14,15 @@ export interface DayOffRequestDto {
   dateEnd: string;
   reason?: string;
   status: DayOffStatus;
+  userId: string;
+  userName?: string; 
+  userSurname?: string;
 }
 export interface CalendarEvent extends RBCEvent {
   id: number;
   status: DayOffStatus;
+  userName?: string; 
+  userSurname?: string;
 }
 export interface UserDtoWithRoles {
   id: string;
