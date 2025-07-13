@@ -1,3 +1,4 @@
+// components/MyNavbar.tsx (lub NavBar.tsx, w zależności od Twojej nazwy pliku)
 import React from 'react';
 import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import type { AccountInfo } from '@azure/msal-browser';
@@ -7,28 +8,43 @@ interface NavBarProps {
   accounts: AccountInfo[];
   onLogin: () => void;
   onLogout: () => void;
+  userRoles: string[]; // <-- Dodajemy nowe prop: tablicę ról
 }
 
-const NavBar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout }) => {
-  const user = accounts[0];
-  const roles = user?.idTokenClaims?.roles || [];
+const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRoles }) => {
+  const user = accounts[0]; 
+  
+  // Rola admina będzie teraz pochodzić z props.userRoles
+  const isAdmin = userRoles.includes("Admin"); 
+  const isLoggedIn = accounts.length > 0;
+  // Do celów debugowania (możesz usunąć po upewnieniu się, że działa)
+  console.log("MyNavbar - Current user roles:", userRoles);
+  console.log("MyNavbar - Is Admin:", isAdmin);
 
-  const isAdmin = roles.includes("Admin"); 
-  console.log("User roles:", roles);
   return (
     <Navbar bg="dark" variant="dark" expand="lg" fixed="top">
       <Container fluid>
-        <Navbar.Brand href="/dashboard">TimeRecorder</Navbar.Brand>
+        {isLoggedIn && (
+          <Navbar.Brand as={NavLink} to="/dashboard">
+            TimeRecorder
+          </Navbar.Brand>
+        )}
+        {!isLoggedIn && (
+          <Navbar.Brand as={NavLink} to="/">
+            TimeRecorder
+          </Navbar.Brand>
+        )}
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
+          {isLoggedIn && (
             <NavLink
               to="/dayoff"
               className={({ isActive }) => `nav-link ${isActive ? 'active text-white' : ''}`}
             >
               Day Off Calendar
             </NavLink>
-
+          )}
             {isAdmin && (
               <NavLink
                 to="/admin"
@@ -42,7 +58,7 @@ const NavBar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout }) => {
             {accounts.length > 0 ? (
               <>
                 <Navbar.Text className="me-3">
-                  Welcome, {user.name}!
+                  Welcome, {user?.name || "User"}! 
                 </Navbar.Text>
                 <Button variant="outline-light" onClick={onLogout}>Logout</Button>
               </>
@@ -56,4 +72,4 @@ const NavBar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout }) => {
   );
 };
 
-export default NavBar;
+export default MyNavbar; 

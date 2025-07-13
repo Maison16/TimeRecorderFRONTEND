@@ -5,9 +5,9 @@ import { enUS } from "date-fns/locale";
 import axios from "axios";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import qs from "qs";
-import { CalendarEvent, DayOffRequestDto, UserDto } from "../types";
+import { CalendarEvent, DayOffRequestDto, UserDto } from "../interfaces/types";
 import { DayOffStatus } from "../enums/DayOffStatus";
-import {apiURL} from "../config";
+import { apiURL } from "../config";
 import Legend from "./Legend";
 import DayOffModal from "./DayOffModal";
 import EventDetailsModal from "./EventDetailsModal";
@@ -27,12 +27,10 @@ const localizer = dateFnsLocalizer({
 });
 
 const DayOffCalendar = () => {
-  const token = localStorage.getItem("access_token");
   const api = axios.create({
-    baseURL: apiURL,
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
+  baseURL: apiURL,
+  withCredentials: true, 
+});
   // Stan
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
@@ -70,7 +68,10 @@ const DayOffCalendar = () => {
     });
 
   const fetchMyEvents = () =>
-    api.get<DayOffRequestDto[]>("api/DayOff/user").then((r) => setMyEvents(mapToEvents(r.data)));
+    api
+      .get<DayOffRequestDto[]>("api/DayOff/user", 
+      )
+      .then((r) => setMyEvents(mapToEvents(r.data)));
 
   const fetchEventsFor = (userId: string) =>
     api
@@ -101,20 +102,21 @@ const DayOffCalendar = () => {
 
   const submitSelectedRange = async () => {
     if (!selectedRange) return;
-    try
-    {
-    await api.post("api/DayOff", null, {
-      params: {
-        dateStart: formatDate(selectedRange.start),
-        dateEnd: formatDate(new Date(selectedRange.end.getTime() - 1)),
-        reason,
-      },
-    });
-  }
-  catch (e) {
+    try {
+      await api.post("api/DayOff", null, {
+        params: {
+          dateStart: formatDate(selectedRange.start),
+          dateEnd: formatDate(new Date(selectedRange.end.getTime() - 1)),
+          reason,
+            withCredentials: true,
+          credentials: 'include',
+        },
+      });
+    }
+    catch (e) {
       alert("Error during request. Please choose another date range.");
       return;
-  }
+    }
     setReason("");
     setSelectedRange(null);
     fetchMyEvents();
@@ -133,7 +135,34 @@ const DayOffCalendar = () => {
       alert("Error during canel.");
     }
   };
-
+const editEvent = async (id: number, newStartDate: Date, newEndDate: Date, newReason: string): Promise<boolean> => {
+    try {
+      const response = await api.put(`api/DayOff/${id}`, null, {
+        params: {
+          newStartDate: formatDate(newStartDate), 
+          newEndDate: formatDate(newEndDate),    
+          newReason: newReason,
+        },
+      });
+      console.log("Edit API response:", response.data);
+      if (response.status === 200) {
+        alert("Day off request edited successfully!");
+        setSelectedEvent(null);
+        if (tabIndex === 0) {
+          fetchMyEvents();
+        } else if (tabIndex === 1 && selectedUser) {
+          fetchEventsFor(selectedUser.id);
+        }
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      console.error("Error editing day off request:", error.response?.data || error.message);
+      const errorMessage = error.response?.data?.error || "Failed to edit request. Please check your dates and reason.";
+      alert(errorMessage);
+      return false; 
+    }
+  };
   const eventStyleGetter = (ev: CalendarEvent) => {
     let bg = "#ddd";
     if (ev.status === DayOffStatus.Approved) bg = "#4ade80";
@@ -225,6 +254,8 @@ const DayOffCalendar = () => {
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
         onCancel={cancelEvent}
+        onEdit={editEvent}
+        
       />
     </Tabs>
   );

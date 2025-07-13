@@ -1,6 +1,6 @@
 import React from "react";
 import Select from "react-select";
-import type { UserDto } from "../types";
+import type { UserDto } from "../interfaces/types";
 
 interface Props {
   users: UserDto[];
