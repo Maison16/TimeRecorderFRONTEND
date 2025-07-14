@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay, startOfDay } from "date-fns";
+import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
 import axios from "axios";
 import qs from "qs";
@@ -32,7 +32,6 @@ const PendingDayOffAdmin: React.FC = () => {
 
   useEffect(() => {
     fetchPendingEvents();
-    // eslint-disable-next-line
   }, []);
 
   const stripTimeZone = (dateStr: string) => {

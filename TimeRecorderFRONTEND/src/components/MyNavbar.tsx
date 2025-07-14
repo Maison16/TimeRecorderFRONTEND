@@ -3,6 +3,7 @@ import React from 'react';
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import type { AccountInfo } from '@azure/msal-browser';
 import { NavLink } from 'react-router-dom';
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 interface NavBarProps {
   accounts: AccountInfo[];
@@ -45,12 +46,20 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
                 Day Off Calendar
               </NavLink>
             )}
+            {isLoggedIn && (
+              <NavLink
+                to="/worklogs"
+                className={({ isActive }) => `nav-link ${isActive ? 'active text-white' : ''}`}
+              >
+                Work Logs
+              </NavLink>
+            )}
             {isAdmin && (
               <NavDropdown title="Admin Panel" id="admin-panel-dropdown">
-                <NavDropdown.Item as={NavLink} to="/pendingAdmin">
+                <NavDropdown.Item as={NavLink} to="/admin/pendingAdmin">
                   Pending DayOffs
                 </NavDropdown.Item>
-                <NavDropdown.Item as={NavLink} to="/deleteDayOff">
+                <NavDropdown.Item as={NavLink} to="/admin/deleteDayOff">
                   Delete DayOffs
                 </NavDropdown.Item>
                 <NavDropdown.Item as={NavLink} to="/admin/projects">
@@ -58,6 +67,9 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
                 </NavDropdown.Item>
                 <NavDropdown.Item as={NavLink} to="/admin/user-projects">
                   Manage User Projects
+                </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/admin/sync-users">
+                  Synchronize Users
                 </NavDropdown.Item>
               </NavDropdown>
             )}
@@ -67,6 +79,9 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
               <>
                 <Navbar.Text className="me-3">
                   Welcome, {user?.name || "User"}!
+                  <NavLink to="/profile" style={{ marginLeft: 8 }}>
+                    <i className="bi bi-person-circle" style={{ fontSize: "1rem", verticalAlign: "middle", cursor: "pointer" }} title="Go to profile"></i>
+                  </NavLink>
                 </Navbar.Text>
                 <Button variant="outline-light" onClick={onLogout}>Logout</Button>
               </>

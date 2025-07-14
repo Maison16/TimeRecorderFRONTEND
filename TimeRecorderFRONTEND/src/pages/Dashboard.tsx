@@ -12,11 +12,10 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetch(`${apiURL}/api/auth/check`, {
       method: 'GET',
-      credentials: 'include', // bardzo ważne, żeby wysłać ciasteczka
+      credentials: 'include',
     })
       .then(async res => {
         if (res.status === 401) {
-          // jeśli nieautoryzowany, przekieruj na stronę logowania
           navigate('/');
           return;
         }
@@ -50,7 +49,7 @@ const Dashboard: React.FC = () => {
   }, [navigate]);
 
   if (loading) return <LoadingSpinner />;
-  if (!user) return null;
+  if (!user || !user.roles || user.roles.length === 0) return null;
 
 
   return (

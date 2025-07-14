@@ -23,6 +23,7 @@ export interface CalendarEvent extends RBCEvent {
   status: DayOffStatus;
   userName?: string; 
   userSurname?: string;
+  reason?: string; 
 }
 export interface UserDtoWithRoles {
   id: string;

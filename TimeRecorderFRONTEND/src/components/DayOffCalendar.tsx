@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -28,9 +28,9 @@ const localizer = dateFnsLocalizer({
 
 const DayOffCalendar = () => {
   const api = axios.create({
-  baseURL: apiURL,
-  withCredentials: true, 
-});
+    baseURL: apiURL,
+    withCredentials: true,
+  });
   // Stan
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
@@ -41,7 +41,6 @@ const DayOffCalendar = () => {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
   const [reason, setReason] = useState("");
-
   useEffect(() => {
     api.get<UserDto[]>("api/User").then((r) => setUsers(r.data));
     fetchMyEvents();
@@ -69,7 +68,7 @@ const DayOffCalendar = () => {
 
   const fetchMyEvents = () =>
     api
-      .get<DayOffRequestDto[]>("api/DayOff/user", 
+      .get<DayOffRequestDto[]>("api/DayOff/user",
       )
       .then((r) => setMyEvents(mapToEvents(r.data)));
 
@@ -108,7 +107,7 @@ const DayOffCalendar = () => {
           dateStart: formatDate(selectedRange.start),
           dateEnd: formatDate(new Date(selectedRange.end.getTime() - 1)),
           reason,
-            withCredentials: true,
+          withCredentials: true,
           credentials: 'include',
         },
       });
@@ -135,12 +134,12 @@ const DayOffCalendar = () => {
       alert("Error during canel.");
     }
   };
-const editEvent = async (id: number, newStartDate: Date, newEndDate: Date, newReason: string): Promise<boolean> => {
+  const editEvent = async (id: number, newStartDate: Date, newEndDate: Date, newReason: string): Promise<boolean> => {
     try {
       const response = await api.put(`api/DayOff/${id}`, null, {
         params: {
-          newStartDate: formatDate(newStartDate), 
-          newEndDate: formatDate(newEndDate),    
+          newStartDate: formatDate(newStartDate),
+          newEndDate: formatDate(newEndDate),
           newReason: newReason,
         },
       });
@@ -160,7 +159,7 @@ const editEvent = async (id: number, newStartDate: Date, newEndDate: Date, newRe
       console.error("Error editing day off request:", error.response?.data || error.message);
       const errorMessage = error.response?.data?.error || "Failed to edit request. Please check your dates and reason.";
       alert(errorMessage);
-      return false; 
+      return false;
     }
   };
   const eventStyleGetter = (ev: CalendarEvent) => {
@@ -208,6 +207,7 @@ const editEvent = async (id: number, newStartDate: Date, newEndDate: Date, newRe
               const today = new Date();
               const ev = event as CalendarEvent;
               if (ev.end && ev.end > startOfDay(today)) {
+                console.log("Selected event:", ev);
                 setSelectedEvent(ev);
               }
             }}
@@ -255,7 +255,7 @@ const editEvent = async (id: number, newStartDate: Date, newEndDate: Date, newRe
         onClose={() => setSelectedEvent(null)}
         onCancel={cancelEvent}
         onEdit={editEvent}
-        
+
       />
     </Tabs>
   );
