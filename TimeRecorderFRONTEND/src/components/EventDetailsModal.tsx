@@ -17,42 +17,27 @@ interface Props {
 }
 
 const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }) => {
-  // Stan do zarządzania trybem edycji
   const [isEditing, setIsEditing] = useState(false);
-
-  // Stany dla formularza edycji
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [reason, setReason] = useState<string>('');
   const [editError, setEditError] = useState<string | null>(null);
 
-  // Ustawianie początkowych wartości formularza po zmianie eventu lub wejściu w tryb edycji
   useEffect(() => {
     if (event) {
       setStartDate(event.start ? dayjs(event.start).format('YYYY-MM-DD') : '');
-      // Data końca w modalu jest pokazywana jako 'end - 1 dzień', więc do edycji
-      // musimy to skorygować i dodać ten 1 dzień z powrotem.
       setEndDate(event.end ? dayjs(event.end).format('YYYY-MM-DD') : '');
       setReason(typeof event.title === "string" ? event.title : '');
-      setEditError(null); // Resetuj błąd przy otwieraniu/zmianie zdarzenia
+      setEditError(null); 
     }
   }, [event]);
 
   if (!event) return null;
 
-  // Funkcja do obsługi zapisu zmian
   const handleSaveEdit = async () => {
     setEditError(null);
     try {
       const newStartDateObj = dayjs(startDate).toDate();
-      // Ważna uwaga: Backend oczekuje daty KOŃCA jako WŁĄCZNIE z tym dniem.
-      // Front-endowy kalendarz często traktuje `end` jako "dzień po zakończeniu".
-      // Musimy wysłać datę końcową tak, jak backend jej oczekuje.
-      // Twoje `new Date(event.end.getTime() - 1).toLocaleDateString()` sugeruje,
-      // że `event.end` jest już o jeden dzień za późno, więc możemy wysłać `dayjs(endDate).toDate()`
-      // Jeśli backend oczekuje, że `newEndDate` jest faktycznym OSTATNIM DNIEM urlopu,
-      // a `event.end` z `react-big-calendar` to `ostatni dzień + 1`,
-      // to `dayjs(endDate).toDate()` będzie poprawne.
       const newEndDateObj = dayjs(endDate).toDate();
 
       // Walidacja dat po stronie klienta
@@ -63,11 +48,9 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
 
       const success = await onEdit(event.id as number, newStartDateObj, newEndDateObj, reason);
       if (success) {
-        setIsEditing(false); // Wyjdź z trybu edycji po sukcesie
-        onClose(); // Zamknij modal
+        setIsEditing(false); 
+        onClose(); 
       } else {
-        // Błąd zostanie obsłużony w onEdit i przekazany jako false
-        // (lub poprzez rzucenie wyjątku, jeśli onEdit go rzuca)
         setEditError("Failed to save changes. Please try again.");
       }
     } catch (err: any) {
@@ -77,8 +60,7 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
   };
 
   const handleCancelEdit = () => {
-    setIsEditing(false); // Wyjdź z trybu edycji bez zapisywania
-    // Przywróć oryginalne wartości formularza
+    setIsEditing(false); 
     if (event) {
       setStartDate(event.start ? dayjs(event.start).format('YYYY-MM-DD') : '');
       setEndDate(event.end ? dayjs(event.end).format('YYYY-MM-DD') : '');
@@ -147,16 +129,12 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
           <p><strong>From:</strong> {event.start?.toLocaleDateString() ?? "no date"}</p>
           <p><strong>To:</strong> {event.end ? dayjs(event.end).subtract(1, 'day').toDate().toLocaleDateString() : "no date"}</p>
           <p><strong>Status:</strong> {DayOffStatus[event.status]}</p>
-          {/* Użyj dangerouslySetInnerHTML tylko jeśli masz pewność, że dane są bezpieczne */}
           <p><strong>Reason:</strong> <span dangerouslySetInnerHTML={{ __html: typeof event.title === "string" ? event.title.replace(/\n/g, "<br />") : "no title" }} /></p>
           
           <div style={{ display: "flex", gap: "10px" }}>
-            {/* Wyświetl przycisk "Edit" tylko jeśli status nie jest 'Cancelled' lub 'Rejected' */}
             {event.status !== DayOffStatus.Cancelled && event.status !== DayOffStatus.Rejected && (
               <button onClick={() => setIsEditing(true)}>Edit</button>
-            )}
-            
-            {/* Przycisk "Cancel Request" powinien być dostępny tylko dla odpowiednich statusów */}
+            )}      
             {(event.status === DayOffStatus.Pending || event.status === DayOffStatus.Approved) && (
                  <button onClick={() => onCancel(event)}>Cancel Request</button>
             )}

@@ -32,7 +32,6 @@ const PendingDayOffAdmin: React.FC = () => {
 
   useEffect(() => {
     fetchPendingEvents();
-    // eslint-disable-next-line
   }, []);
 
   const stripTimeZone = (dateStr: string) => {

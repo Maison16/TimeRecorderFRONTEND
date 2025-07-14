@@ -3,9 +3,10 @@ import DayOffCalendar from "../components/DayOffCalendar";
 import { apiURL } from "../config";
 import { useNavigate } from 'react-router-dom';
 
-
-const Dashboard: React.FC = () => {
+const CalendarDayOffPage: React.FC = () => {
     const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(true);
+
     useEffect(() => {
         const checkAuthAndFetchProfile = async () => {
             try {
@@ -26,24 +27,27 @@ const Dashboard: React.FC = () => {
 
                 if (!profileRes.ok) throw new Error('Unauthorized');
 
-                const profile = await profileRes.json();
-                console.log('✅ User profile:', profile);
+                setIsLoading(false);
             } catch (err) {
-                console.error('❌ Error during auth/profile:', err);
-                navigate('/');
+                console.log("Error checking auth or fetching profile:", err);
+                setIsLoading(false);
+                //setTimeout(() => navigate('/'), 0);
             }
         };
 
         checkAuthAndFetchProfile();
     }, [navigate]);
 
+    if (isLoading) {
+        return <div>Loading...</div>;
+    }
 
     return (
-    <div className="container d-flex flex-column align-items-center justify-content-center pt-5" style={{ minHeight: '100vh' }}>
-        <h2 className="text-center mb-4">Day Off Calendar</h2>
-        <DayOffCalendar />
-    </div>
-);
+        <div className="container d-flex flex-column align-items-center justify-content-center pt-5" style={{ minHeight: '100vh' }}>
+            <h2 className="text-center mb-4">Day Off Calendar</h2>
+            <DayOffCalendar />
+        </div>
+    );
 };
 
-export default Dashboard;
+export default CalendarDayOffPage;

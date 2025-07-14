@@ -13,6 +13,7 @@
     "@azure/msal-browser": "^4.14.0",
     "@azure/msal-react": "^3.0.14",
     "axios": "^1.10.0",
+    "bootstrap-icons": "^1.13.1",
     "date-fns": "^4.1.0",
     "qs": "^6.14.0",
     "react": "^19.1.0",

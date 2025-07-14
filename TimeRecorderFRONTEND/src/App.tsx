@@ -14,18 +14,19 @@ import PendingDayOffAdmin from './pages/admin/PendingDayOffAdmin';
 import Loading from './components/LoadingSpinner';
 import AdminProjectsPage from './pages/admin/AdminProjectsPage';
 import AdminUserProjectsPage from './pages/admin/AdminUserProjectsPage';
+import UserProfilePage from './pages/UserProfilePage';
+import { is } from 'date-fns/locale';
+import SyncUsersAdmin from './pages/admin/SyncUserAdmin';
 
-const msalInstance = new PublicClientApplication(msalConfig);
 
 const App: React.FC = () => {
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
   const isAuthenticated = useIsAuthenticated();
-
+  const { inProgress } = useMsal();
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isLoadingUserRoles, setIsLoadingUserRoles] = useState(true);
-
-  //Funkcja do pobierania ról z backendu 
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const fetchUserRoles = async () => {
     try {
       setIsLoadingUserRoles(true);
@@ -33,18 +34,21 @@ const App: React.FC = () => {
 
       if (response.data && response.data.roles) {
         setUserRoles(response.data.roles);
+        setIsAdmin(response.data.roles.includes("Admin"));
       } else {
         setUserRoles([]);
+        setIsAdmin(false);
       }
     } catch (error) {
       console.error("Error fetching user roles from backend:", error);
       setUserRoles([]);
+      setIsAdmin(false);
     } finally {
       setIsLoadingUserRoles(false);
     }
   };
 
-  //Efekt do pobierania ról po zalogowaniu
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchUserRoles();
@@ -54,7 +58,25 @@ const App: React.FC = () => {
       setIsLoadingUserRoles(false);
     }
   }, [isAuthenticated]);
-
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      response => response,
+      error => {
+        if (
+          error.response &&
+          error.response.status === 401 &&
+          isAuthenticated &&
+          !isLoadingUserRoles
+        ) {
+          handleLogout();
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [isAuthenticated, isLoadingUserRoles]);
   const handleLogin = () => {
     instance.loginPopup({
       scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all']
@@ -89,7 +111,6 @@ const App: React.FC = () => {
         console.error('Login error:', error);
       });
   };
-
   const handleLogout = () => {
     fetch('/api/auth/logout', {
       method: 'POST',
@@ -105,10 +126,7 @@ const App: React.FC = () => {
     });
   };
 
-  const isAdmin = userRoles.includes("Admin");
-
-  //Obsługa stanu ładowania ról
-  if (isAuthenticated && isLoadingUserRoles) {
+  if (isLoadingUserRoles || inProgress !== "none" || isAdmin === null) {
     return <Loading />;
   }
 
@@ -129,7 +147,6 @@ const App: React.FC = () => {
           path="/pendingAdmin"
           element={isAuthenticated && isAdmin ? <PendingDayOffAdmin /> : <Navigate to="/" />}
         />
-        .
         <Route
           path="/deleteDayOff"
           element={isAuthenticated && isAdmin ? <DeleteDayOffAdmin /> : <Navigate to="/" />}
@@ -142,6 +159,11 @@ const App: React.FC = () => {
           path="/admin/user-projects"
           element={isAuthenticated && isAdmin ? <AdminUserProjectsPage /> : <Navigate to="/" />}
         />
+        <Route
+          path="/admin/sync-users"
+          element={isAuthenticated && isAdmin ? <SyncUsersAdmin /> : <Navigate to="/" />}
+        />
+        <Route path="/profile" element={isAuthenticated ? <UserProfilePage /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
