@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
-import { PublicClientApplication } from '@azure/msal-browser';
-import { msalConfig } from './auth/AuthConfig';
 import axios from 'axios';
 import { apiURL } from './config';
 import DeleteDayOffAdmin from './pages/admin/DeleteDayOffAdmin';
@@ -15,9 +13,9 @@ import Loading from './components/LoadingSpinner';
 import AdminProjectsPage from './pages/admin/AdminProjectsPage';
 import AdminUserProjectsPage from './pages/admin/AdminUserProjectsPage';
 import UserProfilePage from './pages/UserProfilePage';
-import { is } from 'date-fns/locale';
 import SyncUsersAdmin from './pages/admin/SyncUserAdmin';
-
+import WorkLogWidget from './components/WorkStatusWidget';
+import WorkLogCalendarPage from './pages/WorkLogCalendarPage';
 
 const App: React.FC = () => {
   const { instance, accounts } = useMsal();
@@ -144,11 +142,11 @@ const App: React.FC = () => {
           element={isAuthenticated ? <CalendarDayOffPage /> : <Navigate to="/" />}
         />
         <Route
-          path="/pendingAdmin"
+          path="/admin/pendingAdmin"
           element={isAuthenticated && isAdmin ? <PendingDayOffAdmin /> : <Navigate to="/" />}
         />
         <Route
-          path="/deleteDayOff"
+          path="/admin/deleteDayOff"
           element={isAuthenticated && isAdmin ? <DeleteDayOffAdmin /> : <Navigate to="/" />}
         />
         <Route
@@ -163,9 +161,14 @@ const App: React.FC = () => {
           path="/admin/sync-users"
           element={isAuthenticated && isAdmin ? <SyncUsersAdmin /> : <Navigate to="/" />}
         />
+        <Route
+          path="/worklogs"
+          element={isAuthenticated ? <WorkLogCalendarPage /> : <Navigate to="/" />}
+        />
         <Route path="/profile" element={isAuthenticated ? <UserProfilePage /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      {isAuthenticated && <WorkLogWidget userRoles={userRoles} />}
     </>
   );
 };

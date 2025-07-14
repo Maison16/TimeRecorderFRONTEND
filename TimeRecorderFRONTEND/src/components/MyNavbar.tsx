@@ -46,12 +46,20 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
                 Day Off Calendar
               </NavLink>
             )}
+            {isLoggedIn && (
+              <NavLink
+                to="/worklogs"
+                className={({ isActive }) => `nav-link ${isActive ? 'active text-white' : ''}`}
+              >
+                Work Logs
+              </NavLink>
+            )}
             {isAdmin && (
               <NavDropdown title="Admin Panel" id="admin-panel-dropdown">
-                <NavDropdown.Item as={NavLink} to="/pendingAdmin">
+                <NavDropdown.Item as={NavLink} to="/admin/pendingAdmin">
                   Pending DayOffs
                 </NavDropdown.Item>
-                <NavDropdown.Item as={NavLink} to="/deleteDayOff">
+                <NavDropdown.Item as={NavLink} to="/admin/deleteDayOff">
                   Delete DayOffs
                 </NavDropdown.Item>
                 <NavDropdown.Item as={NavLink} to="/admin/projects">

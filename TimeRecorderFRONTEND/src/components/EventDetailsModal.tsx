@@ -26,9 +26,13 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
   useEffect(() => {
     if (event) {
       setStartDate(event.start ? dayjs(event.start).format('YYYY-MM-DD') : '');
-      setEndDate(event.end ? dayjs(event.end).format('YYYY-MM-DD') : '');
+      setEndDate(
+        event.end
+          ? dayjs(event.end).subtract(1, 'day').format('YYYY-MM-DD')
+          : ''
+      );
       setReason(typeof event.title === "string" ? event.title : '');
-      setEditError(null); 
+      setEditError(null);
     }
   }, [event]);
 
@@ -48,8 +52,8 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
 
       const success = await onEdit(event.id as number, newStartDateObj, newEndDateObj, reason);
       if (success) {
-        setIsEditing(false); 
-        onClose(); 
+        setIsEditing(false);
+        onClose();
       } else {
         setEditError("Failed to save changes. Please try again.");
       }
@@ -60,7 +64,7 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
   };
 
   const handleCancelEdit = () => {
-    setIsEditing(false); 
+    setIsEditing(false);
     if (event) {
       setStartDate(event.start ? dayjs(event.start).format('YYYY-MM-DD') : '');
       setEndDate(event.end ? dayjs(event.end).format('YYYY-MM-DD') : '');
@@ -130,13 +134,13 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
           <p><strong>To:</strong> {event.end ? dayjs(event.end).subtract(1, 'day').toDate().toLocaleDateString() : "no date"}</p>
           <p><strong>Status:</strong> {DayOffStatus[event.status]}</p>
           <p><strong>Reason:</strong> <span dangerouslySetInnerHTML={{ __html: typeof event.title === "string" ? event.title.replace(/\n/g, "<br />") : "no title" }} /></p>
-          
+
           <div style={{ display: "flex", gap: "10px" }}>
             {event.status !== DayOffStatus.Cancelled && event.status !== DayOffStatus.Rejected && (
               <button onClick={() => setIsEditing(true)}>Edit</button>
-            )}      
+            )}
             {(event.status === DayOffStatus.Pending || event.status === DayOffStatus.Approved) && (
-                 <button onClick={() => onCancel(event)}>Cancel Request</button>
+              <button onClick={() => onCancel(event)}>Cancel Request</button>
             )}
             <button onClick={onClose}>Close</button>
           </div>

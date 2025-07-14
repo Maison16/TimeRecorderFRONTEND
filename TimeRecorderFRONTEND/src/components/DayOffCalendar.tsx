@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, startOfDay } from "date-fns";
 import { enUS } from "date-fns/locale";
@@ -41,9 +41,6 @@ const DayOffCalendar = () => {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
   const [reason, setReason] = useState("");
-  const [editStartDate, setEditStartDate] = useState<Date | null>(null);
-  const [editEndDate, setEditEndDate] = useState<Date | null>(null);
-  const [editReason, setEditReason] = useState<string>("");
   useEffect(() => {
     api.get<UserDto[]>("api/User").then((r) => setUsers(r.data));
     fetchMyEvents();
