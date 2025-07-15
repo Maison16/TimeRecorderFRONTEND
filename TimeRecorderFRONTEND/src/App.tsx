@@ -16,6 +16,8 @@ import UserProfilePage from './pages/UserProfilePage';
 import SyncUsersAdmin from './pages/admin/SyncUserAdmin';
 import WorkLogWidget from './components/WorkStatusWidget';
 import WorkLogCalendarPage from './pages/WorkLogCalendarPage';
+import DeleteWorkLogAdmin from './pages/admin/DeleteWorkLogAdmin';
+import SummaryAdminPage from './pages/admin/SummaryAdminPage';
 
 const App: React.FC = () => {
   const { instance, accounts } = useMsal();
@@ -150,12 +152,20 @@ const App: React.FC = () => {
           element={isAuthenticated && isAdmin ? <DeleteDayOffAdmin /> : <Navigate to="/" />}
         />
         <Route
+          path="/admin/deleteWorkLog"
+          element={isAuthenticated && isAdmin ? <DeleteWorkLogAdmin /> : <Navigate to="/" />}
+        />
+        <Route
           path="/admin/projects"
           element={isAuthenticated && isAdmin ? <AdminProjectsPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/user-projects"
           element={isAuthenticated && isAdmin ? <AdminUserProjectsPage /> : <Navigate to="/" />}
+        />
+        <Route
+          path="/admin/summary"
+          element={isAuthenticated && isAdmin ? <SummaryAdminPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/sync-users"

@@ -62,11 +62,17 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
                 <NavDropdown.Item as={NavLink} to="/admin/deleteDayOff">
                   Delete DayOffs
                 </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/admin/deleteWorkLog">
+                  Delete WorkLogs
+                </NavDropdown.Item>
                 <NavDropdown.Item as={NavLink} to="/admin/projects">
                   Manage Projects
                 </NavDropdown.Item>
                 <NavDropdown.Item as={NavLink} to="/admin/user-projects">
                   Manage User Projects
+                </NavDropdown.Item>
+                <NavDropdown.Item as={NavLink} to="/admin/summary">
+                  Summary
                 </NavDropdown.Item>
                 <NavDropdown.Item as={NavLink} to="/admin/sync-users">
                   Synchronize Users

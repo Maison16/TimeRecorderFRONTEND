@@ -19,6 +19,11 @@ const UserSelect: React.FC<Props> = ({ users, selectedUser, onChange }) => (
     menuPortalTarget={document.body}
     styles={{
       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+      menu: (base) => ({
+        ...base,
+        maxHeight: 120, 
+        overflowY: 'auto',
+      }),
     }}
     menuPosition="fixed"
   />
