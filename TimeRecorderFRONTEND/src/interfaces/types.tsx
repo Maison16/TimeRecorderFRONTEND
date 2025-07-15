@@ -18,6 +18,18 @@ export interface DayOffRequestDto {
   userName?: string; 
   userSurname?: string;
 }
+export interface WorkLogDto {
+  id: number;
+  startTime: string;
+  status: number; // WorkLogStatus
+  endTime?: string;
+  type: number;   // WorkLogType
+  userId: string;
+  duration?: number;
+  userName?: string;
+  userSurname?: string;
+}
+
 export interface CalendarEvent extends RBCEvent {
   id: number;
   status: DayOffStatus;

@@ -7,6 +7,8 @@ import { apiURL } from "../config";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-tabs/style/react-tabs.css";
+import UserSelect from "../components/UserSelect";
+import { UserDto } from "../interfaces/types";
 
 const locales = { "en-US": enUS };
 const localizer = dateFnsLocalizer({
@@ -74,26 +76,19 @@ const WorkLogCalendarPage: React.FC = () => {
   const [teamEvents, setTeamEvents] = useState<CalendarEvent[]>([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState(""); // wyszukiwarka
-  const [users, setUsers] = useState<{ id: string; name: string; surname: string }[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
-
+  const [users, setUsers] = useState<UserDto[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
   useEffect(() => {
     const fetchLogs = async () => {
       setLoading(true);
       try {
-        // Moje worklogi
         const myRes = await axios.get(`${apiURL}/api/WorkLog/filter`, { withCredentials: true });
         setMyEvents(mapToEvents(myRes.data));
-
-        // Pobierz listę użytkowników do wyszukiwarki
         const usersRes = await axios.get(`${apiURL}/api/User`, { withCredentials: true });
         setUsers(usersRes.data);
-
-        // Domyślnie nie pobieraj teamEvents
         setTeamEvents([]);
       } catch (e) {
-        setMyEvents([]);
+        setMyEvents([]);  
         setTeamEvents([]);
         setUsers([]);
       } finally {
@@ -113,13 +108,6 @@ const WorkLogCalendarPage: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // Filtrowanie użytkowników po imieniu/nazwisku
-  const filteredUsers = users.filter(
-    u =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.surname.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className="container pt-5" style={{ maxWidth: 1400 }}>
@@ -147,29 +135,15 @@ const WorkLogCalendarPage: React.FC = () => {
         </TabPanel>
         <TabPanel>
           <div style={{ marginBottom: 16 }}>
-            <input
-              type="text"
-              placeholder="Search user by name or surname..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ padding: 6, width: 250, marginRight: 12 }}
-            />
-            <select
-              value={selectedUserId}
-              onChange={e => {
-                setSelectedUserId(e.target.value);
-                if (e.target.value) fetchTeamLogs(e.target.value);
+            <UserSelect
+              users={users}
+              selectedUser={selectedUser}
+              onChange={user => {
+                setSelectedUser(user);
+                if (user) fetchTeamLogs(user.id);
                 else setTeamEvents([]);
               }}
-              style={{ padding: 6, width: 220 }}
-            >
-              <option value="">-- Select user --</option>
-              {filteredUsers.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.name} {u.surname}
-                </option>
-              ))}
-            </select>
+            />
           </div>
           <Calendar
             localizer={localizer}

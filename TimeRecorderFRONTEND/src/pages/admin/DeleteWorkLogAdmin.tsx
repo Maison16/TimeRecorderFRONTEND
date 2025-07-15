@@ -2,68 +2,77 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import qs from "qs";
 import { apiURL } from "../../config";
-import { DayOffStatus } from "../../enums/DayOffStatus";
-import { DayOffRequestDto } from "../../interfaces/types";
+import { WorkLogType, WorkLogStatus } from "../../enums/WorkLogEnums";
+import { WorkLogDto } from "../../interfaces/types";
+
+const typeOptions = [
+    { value: "", label: "All" },
+    { value: WorkLogType.Work, label: "Work" },
+    { value: WorkLogType.Break, label: "Break" },
+];
 
 const statusOptions = [
     { value: "", label: "All" },
-    { value: DayOffStatus.Pending, label: "Pending" },
-    { value: DayOffStatus.Approved, label: "Approved" },
-    { value: DayOffStatus.Rejected, label: "Rejected" },
-    { value: DayOffStatus.Cancelled, label: "Cancelled" },
-    { value: DayOffStatus.Executed, label: "Executed" },
+    { value: WorkLogStatus.Started, label: "Started" },
+    { value: WorkLogStatus.RequiresAttention, label: "Requires Attention" },
+    { value: WorkLogStatus.Finished, label: "Finished" },
 ];
 
-const statusText = (status: number) => {
-    switch (status) {
-        case DayOffStatus.Pending: return "Pending";
-        case DayOffStatus.Approved: return "Approved";
-        case DayOffStatus.Rejected: return "Rejected";
-        case DayOffStatus.Cancelled: return "Cancelled";
-        case DayOffStatus.Executed: return "Executed";
+const typeText = (type: number) => {
+    switch (type) {
+        case WorkLogType.Work: return "Work";
+        case WorkLogType.Break: return "Break";
         default: return "Unknown";
     }
 };
 
-const DeleteDayOffAdmin: React.FC = () => {
-    const [requests, setRequests] = useState<DayOffRequestDto[]>([]);
+const statusText = (status: number) => {
+    switch (status) {
+        case WorkLogStatus.Started: return "Started";
+        case WorkLogStatus.RequiresAttention: return "Requires Attention";
+        case WorkLogStatus.Finished: return "Finished";
+        default: return "Unknown";
+    }
+};
+
+const DeleteWorkLogAdmin: React.FC = () => {
+    const [logs, setLogs] = useState<WorkLogDto[]>([]);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [status, setStatus] = useState<string>("");
     const [userId, setUserId] = useState<string>("");
-    const [name, setName] = useState<string>("");
-    const [surname, setSurname] = useState<string>("");
-    const [dateStart, setDateStart] = useState<string>("");
-    const [dateEnd, setDateEnd] = useState<string>("");
+    const [name, setName] = useState<string>("");        
+    const [surname, setSurname] = useState<string>("");  
+    const [type, setType] = useState<string>("");
+    const [status, setStatus] = useState<string>("");
+    const [startDay, setStartDay] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState<"delete" | "restore">("delete");
 
-    const fetchRequests = async () => {
+    const fetchLogs = async () => {
         setLoading(true);
         try {
             const params: any = {};
             if (userId) params.userId = userId;
-            if (name) params.Name = name;
+            if (name) params.Name = name;         
             if (surname) params.Surname = surname;
-            if (status) params.statuses = [status];
-            if (dateStart) params.dateStart = dateStart;
-            if (dateEnd) params.dateEnd = dateEnd;
-            params.isdDeleted = view === "restore"; 
+            if (type !== "") params.type = type;
+            if (status !== "") params.status = status;
+            if (startDay) params.startDay = startDay;
+            params.isDeleted = view === "restore";
 
-            const res = await axios.get<DayOffRequestDto[]>(`${apiURL}/api/DayOff/filter`, {
+            const res = await axios.get<WorkLogDto[]>(`${apiURL}/api/WorkLog/filter`, {
                 params,
                 paramsSerializer: (params) => qs.stringify(params, { arrayFormat: "repeat" }),
                 withCredentials: true,
             });
-            setRequests(res.data);
+            setLogs(res.data);
         } catch {
-            alert("Error fetching requests");
+            alert("Error fetching work logs");
         }
         setLoading(false);
     };
 
     useEffect(() => {
-        fetchRequests();
-        // eslint-disable-next-line
+        fetchLogs();
     }, [view]);
 
     const handleSelect = (id: number) => {
@@ -74,36 +83,36 @@ const DeleteDayOffAdmin: React.FC = () => {
 
     const handleDelete = async () => {
         if (selectedIds.length === 0) return;
-        if (!window.confirm("Are you sure you want to delete selected requests?")) return;
+        if (!window.confirm("Are you sure you want to delete selected work logs?")) return;
         setLoading(true);
         try {
             await Promise.all(
                 selectedIds.map((id) =>
-                    axios.delete(`${apiURL}/api/DayOff/${id}`, { withCredentials: true })
+                    axios.delete(`${apiURL}/api/WorkLog/${id}`, { withCredentials: true })
                 )
             );
             setSelectedIds([]);
-            fetchRequests();
+            fetchLogs();
         } catch {
-            alert("Error deleting requests");
+            alert("Error deleting work logs");
         }
         setLoading(false);
     };
 
     const handleRestore = async () => {
         if (selectedIds.length === 0) return;
-        if (!window.confirm("Are you sure you want to restore selected requests?")) return;
+        if (!window.confirm("Are you sure you want to restore selected work logs?")) return;
         setLoading(true);
         try {
             await Promise.all(
                 selectedIds.map((id) =>
-                    axios.post(`${apiURL}/api/DayOff/restore/${id}`, {}, { withCredentials: true })
+                    axios.post(`${apiURL}/api/WorkLog/restore/${id}`, {}, { withCredentials: true })
                 )
             );
             setSelectedIds([]);
-            fetchRequests();
+            fetchLogs();
         } catch {
-            alert("Error restoring requests");
+            alert("Error restoring work logs");
         }
         setLoading(false);
     };
@@ -111,7 +120,7 @@ const DeleteDayOffAdmin: React.FC = () => {
     return (
         <div className="container pt-5" style={{ minHeight: "100vh" }}>
             <h2 className="mb-4 text-center">
-                {view === "delete" ? "Delete Day Off Requests" : "Restore Deleted Day Off Requests"}
+                {view === "delete" ? "Delete Work Logs" : "Restore Deleted Work Logs"}
             </h2>
             <div className="d-flex justify-content-center mb-4 gap-3">
                 <button
@@ -126,7 +135,7 @@ const DeleteDayOffAdmin: React.FC = () => {
                 >
                     Restore
                 </button>
-                <button className="btn btn-secondary" onClick={fetchRequests}>Search</button>
+                <button className="btn btn-secondary" onClick={fetchLogs}>Search</button>
                 {view === "delete" ? (
                     <button className="btn btn-danger" onClick={handleDelete} disabled={selectedIds.length === 0 || loading}>
                         Delete Selected
@@ -168,6 +177,17 @@ const DeleteDayOffAdmin: React.FC = () => {
                 <div className="col-md-2">
                     <select
                         className="form-select"
+                        value={type}
+                        onChange={(e) => setType(e.target.value)}
+                    >
+                        {typeOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="col-md-2">
+                    <select
+                        className="form-select"
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
                     >
@@ -180,16 +200,8 @@ const DeleteDayOffAdmin: React.FC = () => {
                     <input
                         type="date"
                         className="form-control"
-                        value={dateStart}
-                        onChange={(e) => setDateStart(e.target.value)}
-                    />
-                </div>
-                <div className="col-md-2">
-                    <input
-                        type="date"
-                        className="form-control"
-                        value={dateEnd}
-                        onChange={(e) => setDateEnd(e.target.value)}
+                        value={startDay}
+                        onChange={(e) => setStartDay(e.target.value)}
                     />
                 </div>
             </div>
@@ -200,32 +212,34 @@ const DeleteDayOffAdmin: React.FC = () => {
                         <th></th>
                         <th>ID</th>
                         <th>User ID</th>
-                        <th>Name</th>         
-                        <th>Surname</th>      
-                        <th>Reason</th>
+                        <th>User Name</th>
+                        <th>User Surname</th>
+                        <th>Type</th>
                         <th>Status</th>
                         <th>Start</th>
                         <th>End</th>
+                        <th>Duration</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {requests.map((req) => (
-                        <tr key={req.id}>
+                    {logs.map((log) => (
+                        <tr key={log.id}>
                             <td>
                                 <input
                                     type="checkbox"
-                                    checked={selectedIds.includes(req.id)}
-                                    onChange={() => handleSelect(req.id)}
+                                    checked={selectedIds.includes(log.id)}
+                                    onChange={() => handleSelect(log.id)}
                                 />
                             </td>
-                            <td>{req.id}</td>
-                            <td>{req.userId}</td>
-                            <td>{req.userName ?? "-"}</td>      {/* Dodane */}
-                            <td>{req.userSurname ?? "-"}</td>   {/* Dodane */}
-                            <td>{req.reason}</td>
-                            <td>{statusText(req.status)}</td>
-                            <td>{new Date(req.dateStart).toLocaleDateString()}</td>
-                            <td>{new Date(req.dateEnd).toLocaleDateString()}</td>
+                            <td>{log.id}</td>
+                            <td>{log.userId}</td>
+                            <td>{log.userName ?? "-"}</td>
+                            <td>{log.userSurname ?? "-"}</td>
+                            <td>{typeText(log.type)}</td>
+                            <td>{statusText(log.status)}</td>
+                            <td>{new Date(log.startTime).toLocaleString()}</td>
+                            <td>{log.endTime ? new Date(log.endTime).toLocaleString() : "-"}</td>
+                            <td>{log.duration ?? "-"}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -234,4 +248,4 @@ const DeleteDayOffAdmin: React.FC = () => {
     );
 };
 
-export default DeleteDayOffAdmin;
+export default DeleteWorkLogAdmin;
