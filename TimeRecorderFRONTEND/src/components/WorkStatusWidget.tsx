@@ -3,7 +3,7 @@ import axios from "axios";
 import { apiURL } from "../config";
 import { Button, Card, Spinner } from "react-bootstrap";
 
-const POLL_INTERVAL = 1800000; // co 30 minut
+const POLL_INTERVAL = 100000; // 100 seconds
 
 const WorkStatusWidget: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
   if (!userRoles || userRoles.length === 0) 

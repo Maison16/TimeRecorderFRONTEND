@@ -1,5 +1,7 @@
 import { DayOffStatus } from "../enums/DayOffStatus";
 import { Event as RBCEvent } from 'react-big-calendar';
+import { SyncDayOfWeek } from "../enums/SyncDayOfWeek";
+import { SyncFrequency } from "../enums/SuncFrequency";
 
 
 export interface UserDto {
@@ -51,4 +53,14 @@ export interface UserDtoWithRolesAndAuthStatus {
   email: string | null;
   roles: string[]; 
   isAuthenticated: boolean;
+}
+export interface Settings {
+  id: number;
+  maxBreakTime: number;
+  maxWorkHoursDuringOneDay: number;
+  latestStartMoment: number;
+  syncUsersHour: number;
+  syncUsersFrequency: SyncFrequency;
+  syncUsersDays: SyncDayOfWeek[];    // only for Weekly
+  syncUsersMonthDay: number;         // only for Monthly
 }

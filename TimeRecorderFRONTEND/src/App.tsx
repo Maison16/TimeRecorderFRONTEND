@@ -13,13 +13,14 @@ import Loading from './components/LoadingSpinner';
 import AdminProjectsPage from './pages/admin/AdminProjectsPage';
 import AdminUserProjectsPage from './pages/admin/AdminUserProjectsPage';
 import UserProfilePage from './pages/UserProfilePage';
-import SyncUsersAdmin from './pages/admin/SyncUserAdmin';
+import SettingsAdmin from './pages/admin/SettingsAdmin';
 import WorkLogWidget from './components/WorkStatusWidget';
 import WorkLogCalendarPage from './pages/WorkLogCalendarPage';
 import DeleteWorkLogAdmin from './pages/admin/DeleteWorkLogAdmin';
 import SummaryAdminPage from './pages/admin/SummaryAdminPage';
 
 const App: React.FC = () => {
+  console.log("App component mounted");
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
   const isAuthenticated = useIsAuthenticated();
@@ -30,7 +31,9 @@ const App: React.FC = () => {
   const fetchUserRoles = async () => {
     try {
       setIsLoadingUserRoles(true);
+      console.log("Fetching user roles...");
       const response = await axios.get(`${apiURL}/api/auth/check`, { withCredentials: true });
+      console.log("User roles response:", response.data);
 
       if (response.data && response.data.roles) {
         setUserRoles(response.data.roles);
@@ -50,10 +53,10 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
+    console.log("isAuthenticated:", isAuthenticated);
     if (isAuthenticated) {
       fetchUserRoles();
-    }
-    else {
+    } else {
       setUserRoles([]);
       setIsLoadingUserRoles(false);
     }
@@ -126,7 +129,17 @@ const App: React.FC = () => {
     });
   };
 
-  if (isLoadingUserRoles || inProgress !== "none" || isAdmin === null) {
+  if (!isAuthenticated) {
+    return (
+      <>
+        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} />
+        <Home />
+      </>
+    );
+  }
+
+  if (isLoadingUserRoles || inProgress !== "none" || isAdmin === null) {  
+    console.log("Loading user roles or MSAL in progress");
     return <Loading />;
   }
 
@@ -168,8 +181,8 @@ const App: React.FC = () => {
           element={isAuthenticated && isAdmin ? <SummaryAdminPage /> : <Navigate to="/" />}
         />
         <Route
-          path="/admin/sync-users"
-          element={isAuthenticated && isAdmin ? <SyncUsersAdmin /> : <Navigate to="/" />}
+          path="/admin/settings"
+          element={isAuthenticated && isAdmin ? <SettingsAdmin /> : <Navigate to="/" />}
         />
         <Route
           path="/worklogs"

@@ -74,8 +74,8 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
                 <NavDropdown.Item as={NavLink} to="/admin/summary">
                   Summary
                 </NavDropdown.Item>
-                <NavDropdown.Item as={NavLink} to="/admin/sync-users">
-                  Synchronize Users
+                <NavDropdown.Item as={NavLink} to="/admin/settings">
+                  Settings and Sync
                 </NavDropdown.Item>
               </NavDropdown>
             )}
