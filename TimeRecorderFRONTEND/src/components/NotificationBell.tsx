@@ -25,10 +25,13 @@ const NotificationBell: React.FC<{ bellColor?: string }> = ({ bellColor = "#fff"
 
         connection.on("WorkStatusChanged", (data: any) => {
             let msg = "";
+            console.log("Notification data:", data.status);
             if (data.status === "not_started") msg = "You didn't start work today!";
             if (data.status === "unfinished") msg = "You didn't end work today!";
-            if (data.status === "long_break") msg = `Your break is longer than ${data.maxBreakTime} minutes!`;
+            if (data.status === "long_break") msg = `Your break is longer than ${data.maxBreakTime} minutes. End it as quick as you can!`;
             if (data.status === "new_thread") msg = "New daily thread has been started!";
+            if (data.status === "break_ended") msg = "Your break has been automatically ended!";
+            if (data.status === "auto_work_ended") msg = "Your work log requires attention (auto-marked)!";
             if (msg) {
                 playSound();
                 const now = new Date();
@@ -51,15 +54,12 @@ const NotificationBell: React.FC<{ bellColor?: string }> = ({ bellColor = "#fff"
         audio.play();
     };
 
-    // Liczba nieprzeczytanych powiadomień
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    // Oznacz wszystkie jako przeczytane
     const markAllAsRead = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     };
 
-    // Oznacz jedno jako przeczytane (np. po kliknięciu)
     const markAsRead = (idx: number) => {
         setNotifications(prev =>
             prev.map((n, i) => (i === idx ? { ...n, read: true } : n))

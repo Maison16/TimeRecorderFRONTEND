@@ -38,6 +38,7 @@ export interface CalendarEvent extends RBCEvent {
   userName?: string; 
   userSurname?: string;
   reason?: string; 
+  userId?: string;
 }
 export interface UserDtoWithRoles {
   id: string;

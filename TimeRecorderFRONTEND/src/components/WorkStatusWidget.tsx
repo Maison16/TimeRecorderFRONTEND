@@ -2,17 +2,18 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { apiURL } from "../config";
 import { Button, Card, Spinner } from "react-bootstrap";
+import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 
 const POLL_INTERVAL = 100000; // 100 seconds
 
 const WorkStatusWidget: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
-  if (!userRoles || userRoles.length === 0) 
-    {
-      return null;
-    }
+  if (!userRoles || userRoles.length === 0) {
+    return null;
+  }
   const [loading, setLoading] = useState(true);
   const [workLog, setWorkLog] = useState<any>(null);
   const [timer, setTimer] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchStatus = async () => {
@@ -27,6 +28,26 @@ const WorkStatusWidget: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${apiURL}/workStatusHub`, { withCredentials: true })
+      .configureLogging(LogLevel.Information)
+      .build();
+
+    connection.start()
+      .then(() => console.log("SignalR connected"))
+      .catch(err => console.error("SignalR error:", err));
+
+    connection.on("WorkStatusChanged", () => {
+      fetchStatus();
+    });
+
+    return () => {
+      connection.stop();
+    };
+  }, []);
+
   useEffect(() => {
     if (workLog && workLog.startTime && !workLog.endTime) {
       const start = new Date(workLog.startTime).getTime();
@@ -43,26 +64,48 @@ const WorkStatusWidget: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
     };
   }, [workLog]);
 
+  //fallback
+  useEffect(() => {
+     fetchStatus();
+     const interval = setInterval(fetchStatus, POLL_INTERVAL);
+     return () => clearInterval(interval);
+   }, []);
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, POLL_INTERVAL);
-    return () => clearInterval(interval);
   }, []);
 
   const handleStartWork = async () => {
     setLoading(true);
-    await axios.post(`${apiURL}/api/WorkLog/start?type=Work`, {}, { withCredentials: true });
-    fetchStatus();
+    setError(null);
+    try {
+      await axios.post(`${apiURL}/api/WorkLog/start?type=Work`, {}, { withCredentials: true });
+      // SignalR odświeży status
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to start work.");
+      setLoading(false);
+    }
   };
   const handleStartBreak = async () => {
     setLoading(true);
-    await axios.post(`${apiURL}/api/WorkLog/start?type=Break`, {}, { withCredentials: true });
-    fetchStatus();
+    setError(null);
+    try {
+      await axios.post(`${apiURL}/api/WorkLog/start?type=Break`, {}, { withCredentials: true });
+      // SignalR odświeży status
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to start break.");
+      setLoading(false);
+    }
   };
   const handleEndWork = async () => {
     setLoading(true);
-    await axios.post(`${apiURL}/api/WorkLog/end/${workLog.id}`, {}, { withCredentials: true });
-    fetchStatus();
+    setError(null);
+    try {
+      await axios.post(`${apiURL}/api/WorkLog/end/${workLog.id}`, {}, { withCredentials: true });
+      // SignalR odświeży status
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to end work.");
+      setLoading(false);
+    }
   };
 
   const formatTime = (sec: number) => {
@@ -126,6 +169,37 @@ const WorkStatusWidget: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
             )}
           </div>
         </>
+      )}
+      {error && (
+        <div
+          style={{
+            position: "fixed",
+            right: 24,
+            bottom: 90,
+            zIndex: 9999,
+            background: "#d9534f",
+            color: "#fff",
+            padding: "12px 20px",
+            borderRadius: 10,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            fontSize: 15,
+            minWidth: 220,
+            animation: "fadeInOut 5s"
+          }}
+        >
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          {error}
+          <style>
+            {`
+              @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(30px);}
+                10% { opacity: 1; transform: translateY(0);}
+                90% { opacity: 1; transform: translateY(0);}
+                100% { opacity: 0; transform: translateY(30px);}
+              }
+            `}
+          </style>
+        </div>
       )}
     </Card>
   );

@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { apiURL } from "../../config";
+import UserSelect from "../../components/UserSelect";
+import type { UserDto } from "../../interfaces/types";
+
+type ProjectDto = { id: string; name: string };
 
 type SummaryDto = {
   totalWorkTimeMinutes: number;
@@ -18,10 +22,10 @@ type SummaryDto = {
 const SummaryAdminPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [userId, setUserId] = useState("");
-  const [projectId, setProjectId] = useState("");
-  const [names, setNames] = useState<string[]>([]);
-  const [surnames, setSurnames] = useState<string[]>([]);
+  const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
+  const [users, setUsers] = useState<UserDto[]>([]);
+  const [selectedProject, setSelectedProject] = useState<ProjectDto | null>(null);
+  const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [summary, setSummary] = useState<SummaryDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [range, setRange] = useState("today");
@@ -46,16 +50,23 @@ const SummaryAdminPage: React.FC = () => {
     }
   }, [range]);
 
+  useEffect(() => {
+    axios.get(`${apiURL}/api/User`, { withCredentials: true })
+      .then(res => setUsers(res.data))
+      .catch(() => setUsers([]));
+    axios.get(`${apiURL}/api/Project`, { withCredentials: true })
+      .then(res => setProjects(res.data))
+      .catch(() => setProjects([]));
+  }, []);
+
   const handleSearch = async () => {
     setLoading(true);
     try {
       const params: any = {};
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
-      if (userId) params.userId = userId;
-      if (projectId) params.projectId = projectId;
-      if (names.length > 0) params.names = names;
-      if (surnames.length > 0) params.surnames = surnames;
+      if (selectedUser) params.userId = selectedUser.id;
+      if (selectedProject) params.projectId = selectedProject.id;
 
       const res = await axios.get(`${apiURL}/api/Summary`, {
         params,
@@ -92,46 +103,36 @@ const SummaryAdminPage: React.FC = () => {
           />
         </div>
         <div className="col-md-3">
-          <label>User ID</label>
-          <input
-            type="text"
-            className="form-control"
-            value={userId}
-            onChange={e => setUserId(e.target.value)}
-            placeholder="User ID"
-          />
+          <label>User</label>
+          <select
+            className="form-select"
+            value={selectedUser?.id || ""}
+            onChange={e => {
+              const user = users.find(u => u.id === e.target.value) || null;
+              setSelectedUser(user);
+            }}
+          >
+            <option value="">All users</option>
+            {users.map(u => (
+              <option key={u.id} value={u.id}>{u.name} {u.surname}</option>
+            ))}
+          </select>
         </div>
         <div className="col-md-3">
-          <label>Project ID</label>
-          <input
-            type="text"
-            className="form-control"
-            value={projectId}
-            onChange={e => setProjectId(e.target.value)}
-            placeholder="Project ID"
-          />
-        </div>
-      </div>
-      <div className="row mb-3">
-        <div className="col-md-6">
-          <label>Names (comma separated)</label>
-          <input
-            type="text"
-            className="form-control"
-            value={names.join(",")}
-            onChange={e => setNames(e.target.value.split(",").map(n => n.trim()).filter(Boolean))}
-            placeholder="e.g. Jan,Anna"
-          />
-        </div>
-        <div className="col-md-6">
-          <label>Surnames (comma separated)</label>
-          <input
-            type="text"
-            className="form-control"
-            value={surnames.join(",")}
-            onChange={e => setSurnames(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-            placeholder="e.g. Kowalski,Nowak"
-          />
+          <label>Project</label>
+          <select
+            className="form-select"
+            value={selectedProject?.id?.toString() || ""}
+            onChange={e => {
+              const proj = projects.find(p => p.id.toString() === e.target.value) || null;
+              setSelectedProject(proj);
+            }}
+          >
+            <option value="">All projects</option>
+            {projects.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="mb-3">
