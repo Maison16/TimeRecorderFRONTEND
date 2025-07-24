@@ -4,6 +4,7 @@ import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import type { AccountInfo } from '@azure/msal-browser';
 import { NavLink } from 'react-router-dom';
 import "bootstrap-icons/font/bootstrap-icons.css";
+import NotificationBell from "./NotificationBell";
 
 interface NavBarProps {
   accounts: AccountInfo[];
@@ -74,8 +75,8 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
                 <NavDropdown.Item as={NavLink} to="/admin/summary">
                   Summary
                 </NavDropdown.Item>
-                <NavDropdown.Item as={NavLink} to="/admin/sync-users">
-                  Synchronize Users
+                <NavDropdown.Item as={NavLink} to="/admin/settings">
+                  Settings and Sync
                 </NavDropdown.Item>
               </NavDropdown>
             )}
@@ -83,11 +84,23 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
           <Nav className="ms-auto">
             {accounts.length > 0 ? (
               <>
-                <Navbar.Text className="me-3">
+                <Navbar.Text className="me-3 d-flex align-items-center">
                   Welcome, {user?.name || "User"}!
                   <NavLink to="/profile" style={{ marginLeft: 8 }}>
-                    <i className="bi bi-person-circle" style={{ fontSize: "1rem", verticalAlign: "middle", cursor: "pointer" }} title="Go to profile"></i>
+                    <i
+                      className="bi bi-person-circle"
+                      style={{
+                        fontSize: "1rem",
+                        verticalAlign: "middle",
+                        cursor: "pointer"
+                      }}
+                      title="Go to profile"
+                    ></i>
                   </NavLink>
+                  {/* Dzwonek powiadomień obok imienia */}
+                  <span style={{ marginLeft: 16 }}>
+                    <NotificationBell bellColor="#fff" />
+                  </span>
                 </Navbar.Text>
                 <Button variant="outline-light" onClick={onLogout}>Logout</Button>
               </>
@@ -101,4 +114,4 @@ const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRole
   );
 };
 
-export default MyNavbar; 
+export default MyNavbar;
