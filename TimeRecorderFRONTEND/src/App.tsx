@@ -82,7 +82,8 @@ const App: React.FC = () => {
   }, [isAuthenticated, isLoadingUserRoles]);
   const handleLogin = () => {
     instance.loginPopup({
-      scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all']
+      scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all'],
+      prompt: "select_account",
     })
       .then(async (response) => {
         const account = response.account;
