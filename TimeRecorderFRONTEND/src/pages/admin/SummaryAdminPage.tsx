@@ -150,8 +150,20 @@ const SummaryAdminPage: React.FC = () => {
           </>
         )}
       </div>
-      <button className="btn btn-primary mb-4" onClick={handleSearch} disabled={loading}>
+      <button className="btn btn-primary mb-4 me-2" onClick={handleSearch} disabled={loading}>
         {loading ? "Loading..." : "Show Summary"}
+      </button>
+      <button
+        className="btn btn-outline-success mb-4"
+        onClick={() => {
+          const params = [];
+          if (dateFrom) params.push(`from=${dateFrom}`);
+          if (dateTo) params.push(`to=${dateTo}`);
+          const url = `${apiURL}/api/Summary/csv?${params.join("&")}`;
+          window.open(url, "_blank");
+        }}
+      >
+        Export CSV For Selected Range
       </button>
       {summary && (
         <div className="card p-3">
