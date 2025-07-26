@@ -19,10 +19,17 @@ type SummaryDto = {
   cancelledDaysOff: number;
 };
 
+const ALL_USERS_OPTION: UserDto = {
+  id: "",
+  name: "Wszyscy",
+  email: "",
+  surname: "",
+};
+
 const SummaryAdminPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserDto | null>(ALL_USERS_OPTION);
   const [users, setUsers] = useState<UserDto[]>([]);
   const [selectedProject, setSelectedProject] = useState<ProjectDto | null>(null);
   const [projects, setProjects] = useState<ProjectDto[]>([]);
@@ -52,8 +59,8 @@ const SummaryAdminPage: React.FC = () => {
 
   useEffect(() => {
     axios.get(`${apiURL}/api/User`, { withCredentials: true })
-      .then(res => setUsers(res.data))
-      .catch(() => setUsers([]));
+      .then(res => setUsers([ALL_USERS_OPTION, ...res.data]))
+      .catch(() => setUsers([ALL_USERS_OPTION]));
     axios.get(`${apiURL}/api/Project`, { withCredentials: true })
       .then(res => setProjects(res.data))
       .catch(() => setProjects([]));
@@ -65,7 +72,7 @@ const SummaryAdminPage: React.FC = () => {
       const params: any = {};
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
-      if (selectedUser) params.userId = selectedUser.id;
+      if (selectedUser && selectedUser.id) params.userId = selectedUser.id;
       if (selectedProject) params.projectId = selectedProject.id;
 
       const res = await axios.get(`${apiURL}/api/Summary`, {
@@ -104,19 +111,11 @@ const SummaryAdminPage: React.FC = () => {
         </div>
         <div className="col-md-3">
           <label>User</label>
-          <select
-            className="form-select"
-            value={selectedUser?.id || ""}
-            onChange={e => {
-              const user = users.find(u => u.id === e.target.value) || null;
-              setSelectedUser(user);
-            }}
-          >
-            <option value="">All users</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>{u.name} {u.surname}</option>
-            ))}
-          </select>
+          <UserSelect
+            users={users}
+            selectedUser={selectedUser}
+            onChange={setSelectedUser}
+          />
         </div>
         <div className="col-md-3">
           <label>Project</label>

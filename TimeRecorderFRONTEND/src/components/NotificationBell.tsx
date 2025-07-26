@@ -32,6 +32,10 @@ const NotificationBell: React.FC<{ bellColor?: string }> = ({ bellColor = "#fff"
             if (data.status === "new_thread") msg = "New daily thread has been started!";
             if (data.status === "break_ended") msg = "Your break has been automatically ended!";
             if (data.status === "auto_work_ended") msg = "Your work log requires attention (auto-marked)!";
+            if( data.status === "work_ended") msg = "Your work log has been ended!";
+            if (data.status === "work_started") msg = "Your work log has been started!";
+            if( data.status === "break_started") msg = "Your break has been started!";
+
             if (msg) {
                 playSound();
                 const now = new Date();

@@ -44,6 +44,9 @@ const DeleteWorkLogAdmin: React.FC = () => {
     const [type, setType] = useState<string>("");
     const [status, setStatus] = useState<string>("");
     const [startDay, setStartDay] = useState<string>("");
+    const [pageNumber, setPageNumber] = useState<number>(1);
+    const [pageSize, setPageSize] = useState<number>(10);
+    const [totalCount, setTotalCount] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState<"delete" | "restore">("delete");
 
@@ -57,6 +60,8 @@ const DeleteWorkLogAdmin: React.FC = () => {
             if (type !== "") params.type = type;
             if (status !== "") params.status = status;
             if (startDay) params.startDay = startDay;
+            params.pageNumber = pageNumber;
+            params.pageSize = pageSize;
             params.isDeleted = view === "restore";
 
             const res = await axios.get<WorkLogDto[]>(`${apiURL}/api/WorkLog/filter`, {
@@ -65,6 +70,24 @@ const DeleteWorkLogAdmin: React.FC = () => {
                 withCredentials: true,
             });
             setLogs(res.data);
+            
+            console.log('API Response:', {
+                dataLength: res.data.length,
+                pageNumber: pageNumber,
+                pageSize: pageSize,
+                headers: res.headers
+            });
+            
+            const totalCountHeader = res.headers['x-total-count'];
+            if (totalCountHeader) {
+                setTotalCount(parseInt(totalCountHeader));
+            } else {
+                if (res.data.length === pageSize) {
+                    setTotalCount((pageNumber * pageSize) + 1); 
+                } else {
+                    setTotalCount((pageNumber - 1) * pageSize + res.data.length);
+                }
+            }
         } catch {
             alert("Error fetching work logs");
         }
@@ -73,13 +96,28 @@ const DeleteWorkLogAdmin: React.FC = () => {
 
     useEffect(() => {
         fetchLogs();
-    }, [view]);
+    }, [view, pageNumber, pageSize]);
 
     const handleSelect = (id: number) => {
         setSelectedIds((prev) =>
             prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
         );
     };
+
+    const handlePageChange = (newPage: number) => {
+        setPageNumber(newPage);
+        setSelectedIds([]); 
+    };
+
+    const handlePageSizeChange = (newPageSize: number) => {
+        setPageSize(newPageSize);
+        setPageNumber(1); 
+        setSelectedIds([]); 
+    };
+
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const hasNextPage = logs.length === pageSize; 
+    const hasPrevPage = pageNumber > 1;
 
     const handleDelete = async () => {
         if (selectedIds.length === 0) return;
@@ -135,7 +173,10 @@ const DeleteWorkLogAdmin: React.FC = () => {
                 >
                     Restore
                 </button>
-                <button className="btn btn-secondary" onClick={fetchLogs}>Search</button>
+                <button className="btn btn-secondary" onClick={() => {
+                    setPageNumber(1); // Reset to first page when searching
+                    fetchLogs();
+                }}>Search</button>
                 {view === "delete" ? (
                     <button className="btn btn-danger" onClick={handleDelete} disabled={selectedIds.length === 0 || loading}>
                         Delete Selected
@@ -244,6 +285,52 @@ const DeleteWorkLogAdmin: React.FC = () => {
                     ))}
                 </tbody>
             </table>
+            
+            <div className="d-flex justify-content-between align-items-center mt-4">
+                <div className="d-flex align-items-center gap-2">
+                    <span>Rows per page:</span>
+                    <select 
+                        className="form-select form-select-sm" 
+                        style={{ width: "auto" }}
+                        value={pageSize} 
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                    >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
+                </div>
+                
+                <div className="d-flex align-items-center gap-3">
+                    <span>
+                        {logs.length > 0 
+                            ? `${(pageNumber - 1) * pageSize + 1}-${(pageNumber - 1) * pageSize + logs.length}`
+                            : "No records"
+                        }
+                    </span>
+                    <div className="btn-group">
+                        <button 
+                            className="btn btn-outline-secondary btn-sm" 
+                            onClick={() => handlePageChange(pageNumber - 1)}
+                            disabled={!hasPrevPage || loading}
+                        >
+                            Previous
+                        </button>
+                        <span className="btn btn-outline-secondary btn-sm disabled">
+                            Page {pageNumber}
+                        </span>
+                        <button 
+                            className="btn btn-outline-secondary btn-sm" 
+                            onClick={() => handlePageChange(pageNumber + 1)}
+                            disabled={!hasNextPage || loading}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
