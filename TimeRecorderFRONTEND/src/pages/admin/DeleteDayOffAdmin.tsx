@@ -34,6 +34,9 @@ const DeleteDayOffAdmin: React.FC = () => {
     const [surname, setSurname] = useState<string>("");
     const [dateStart, setDateStart] = useState<string>("");
     const [dateEnd, setDateEnd] = useState<string>("");
+    const [pageNumber, setPageNumber] = useState<number>(1);
+    const [pageSize, setPageSize] = useState<number>(10);
+    const [totalCount, setTotalCount] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState<"delete" | "restore">("delete");
 
@@ -47,7 +50,9 @@ const DeleteDayOffAdmin: React.FC = () => {
             if (status) params.statuses = [status];
             if (dateStart) params.dateStart = dateStart;
             if (dateEnd) params.dateEnd = dateEnd;
-            params.isdDeleted = view === "restore"; 
+            params.isdDeleted = view === "restore";
+            params.pageNumber = pageNumber;
+            params.pageSize = pageSize;
 
             const res = await axios.get<DayOffRequestDto[]>(`${apiURL}/api/DayOff/filter`, {
                 params,
@@ -55,6 +60,25 @@ const DeleteDayOffAdmin: React.FC = () => {
                 withCredentials: true,
             });
             setRequests(res.data);
+
+            // Debug logging
+            console.log('API Response:', {
+                dataLength: res.data.length,
+                pageNumber: pageNumber,
+                pageSize: pageSize,
+                headers: res.headers
+            });
+
+            const totalCountHeader = res.headers['x-total-count'];
+            if (totalCountHeader) {
+                setTotalCount(parseInt(totalCountHeader));
+            } else {
+                if (res.data.length === pageSize) {
+                    setTotalCount((pageNumber * pageSize) + 1);
+                } else {
+                    setTotalCount((pageNumber - 1) * pageSize + res.data.length);
+                }
+            }
         } catch {
             alert("Error fetching requests");
         }
@@ -64,7 +88,21 @@ const DeleteDayOffAdmin: React.FC = () => {
     useEffect(() => {
         fetchRequests();
         // eslint-disable-next-line
-    }, [view]);
+    }, [view, pageNumber, pageSize]);
+
+    const handlePageChange = (newPage: number) => {
+        setPageNumber(newPage);
+        setSelectedIds([]);
+    };
+
+    const handlePageSizeChange = (newPageSize: number) => {
+        setPageSize(newPageSize);
+        setPageNumber(1);
+        setSelectedIds([]);
+    };
+
+    const hasNextPage = requests.length === pageSize;
+    const hasPrevPage = pageNumber > 1;
 
     const handleSelect = (id: number) => {
         setSelectedIds((prev) =>
@@ -126,7 +164,10 @@ const DeleteDayOffAdmin: React.FC = () => {
                 >
                     Restore
                 </button>
-                <button className="btn btn-secondary" onClick={fetchRequests}>Search</button>
+                <button className="btn btn-secondary" onClick={() => {
+                    setPageNumber(1);
+                    fetchRequests();
+                }}>Search</button>
                 {view === "delete" ? (
                     <button className="btn btn-danger" onClick={handleDelete} disabled={selectedIds.length === 0 || loading}>
                         Delete Selected
@@ -220,8 +261,8 @@ const DeleteDayOffAdmin: React.FC = () => {
                             </td>
                             <td>{req.id}</td>
                             <td>{req.userId}</td>
-                            <td>{req.userName ?? "-"}</td>      {/* Dodane */}
-                            <td>{req.userSurname ?? "-"}</td>   {/* Dodane */}
+                            <td>{req.userName ?? "-"}</td>
+                            <td>{req.userSurname ?? "-"}</td>
                             <td>{req.reason}</td>
                             <td>{statusText(req.status)}</td>
                             <td>{new Date(req.dateStart).toLocaleDateString()}</td>
@@ -230,6 +271,50 @@ const DeleteDayOffAdmin: React.FC = () => {
                     ))}
                 </tbody>
             </table>
+            <div className="d-flex justify-content-between align-items-center mt-4">
+                <div className="d-flex align-items-center gap-2">
+                    <span>Rows per page:</span>
+                    <select 
+                        className="form-select form-select-sm" 
+                        style={{ width: "auto" }}
+                        value={pageSize} 
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                    >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
+                </div>
+                <div className="d-flex align-items-center gap-3">
+                    <span>
+                        {requests.length > 0 
+                            ? `${(pageNumber - 1) * pageSize + 1}-${(pageNumber - 1) * pageSize + requests.length}`
+                            : "No records"
+                        }
+                    </span>
+                    <div className="btn-group">
+                        <button 
+                            className="btn btn-outline-secondary btn-sm" 
+                            onClick={() => handlePageChange(pageNumber - 1)}
+                            disabled={!hasPrevPage || loading}
+                        >
+                            Previous
+                        </button>
+                        <span className="btn btn-outline-secondary btn-sm disabled">
+                            Page {pageNumber}
+                        </span>
+                        <button 
+                            className="btn btn-outline-secondary btn-sm" 
+                            onClick={() => handlePageChange(pageNumber + 1)}
+                            disabled={!hasNextPage || loading}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
