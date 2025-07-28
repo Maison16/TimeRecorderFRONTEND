@@ -51,21 +51,20 @@ const DayOffCalendar = () => {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   };
 
-  const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
-    data.map((e) => {
-      const start = stripTimeZone(e.dateStart);
-      const end = stripTimeZone(e.dateEnd);
-      const fixedEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-      return {
-        title: e.reason ?? "Day off",
-        start,
-        end: fixedEnd,
-        allDay: true,
-        status: e.status,
-        id: e.id,
-      };
-    });
-
+const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
+  data.map((e) => {
+    const start = stripTimeZone(e.dateStart);
+    const end = stripTimeZone(e.dateEnd);
+    const fixedEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    return {
+      title: e.reason && e.reason.trim() ? e.reason : "-No reason-", 
+      start,
+      end: fixedEnd,
+      allDay: true,
+      status: e.status,
+      id: e.id,
+    };
+  });
   const fetchMyEvents = () =>
     api
       .get<DayOffRequestDto[]>("api/DayOff/user",
@@ -102,18 +101,36 @@ const DayOffCalendar = () => {
   const submitSelectedRange = async () => {
     if (!selectedRange) return;
     try {
-      await api.post("api/DayOff", null, {
-        params: {
-          dateStart: formatDate(selectedRange.start),
-          dateEnd: formatDate(new Date(selectedRange.end.getTime() - 1)),
-          reason,
-          withCredentials: true,
-          credentials: 'include',
-        },
+
+      await api.post("api/DayOff", {
+        dateStart: formatDate(selectedRange.start),
+        dateEnd: formatDate(new Date(selectedRange.end.getTime() - 1)),
+        reason
       });
-    }
-    catch (e) {
-      alert("Error during request. Please choose another date range.");
+    } catch (e: any) {
+      let errorMessage = "Error during request.";
+      if (e.response) {
+        console.log('Validation error response:', e.response);
+      }
+      if (e.response && e.response.data) {
+        const data = e.response.data;
+        if (Array.isArray(data.errors)) {
+          errorMessage = data.errors.join("\n");
+        } else if (typeof data === "string") {
+          errorMessage = data;
+        } else if (data.errors) {
+          errorMessage = Object.values(data.errors).flat().join("\n");
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        }
+      } else if (e.message) {
+        errorMessage = e.message;
+      }
+      alert(errorMessage);
       return;
     }
     setReason("");
