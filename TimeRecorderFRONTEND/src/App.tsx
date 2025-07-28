@@ -28,6 +28,8 @@ const App: React.FC = () => {
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isLoadingUserRoles, setIsLoadingUserRoles] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
   const fetchUserRoles = async () => {
     try {
       setIsLoadingUserRoles(true);
@@ -65,13 +67,17 @@ const App: React.FC = () => {
     const interceptor = axios.interceptors.response.use(
       response => response,
       error => {
-        if (
-          error.response &&
-          error.response.status === 401 &&
-          isAuthenticated &&
-          !isLoadingUserRoles
-        ) {
-          handleLogout();
+        if (error.response) {
+          if (
+            error.response.status === 401 &&
+            isAuthenticated &&
+            !isLoadingUserRoles
+          ) {
+            setSessionExpired(true);
+            handleLogout();
+          } else if (error.response.status === 429) {
+            setRateLimited(true);
+          }
         }
         return Promise.reject(error);
       }
@@ -80,6 +86,27 @@ const App: React.FC = () => {
       axios.interceptors.response.eject(interceptor);
     };
   }, [isAuthenticated, isLoadingUserRoles]);
+  // Modal for rate limiting
+  const RateLimitedModal = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      background: 'rgba(0,0,0,0.4)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <div style={{ background: '#fff', padding: 32, borderRadius: 8, minWidth: 320, textAlign: 'center', boxShadow: '0 2px 16px #0002' }}>
+        <h2>Too Many Requests</h2>
+        <p>Too many requests sent. Please wait a moment and try again.</p>
+        <button className="btn btn-primary" onClick={() => setRateLimited(false)}>OK</button>
+      </div>
+    </div>
+  );
   const handleLogin = () => {
     instance.loginPopup({
       scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all'],
@@ -130,9 +157,34 @@ const App: React.FC = () => {
     });
   };
 
+
+  // Modal session expired
+  const SessionExpiredModal = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      background: 'rgba(0,0,0,0.4)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <div style={{ background: '#fff', padding: 32, borderRadius: 8, minWidth: 320, textAlign: 'center', boxShadow: '0 2px 16px #0002' }}>
+        <h2>Your session has expired</h2>
+        <p>Please log in again.</p>
+        <button className="btn btn-primary" onClick={() => setSessionExpired(false)}>OK</button>
+      </div>
+    </div>
+  );
+
   if (!isAuthenticated) {
     return (
       <>
+        {sessionExpired && <SessionExpiredModal />}
+        {rateLimited && <RateLimitedModal />}
         <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} />
         <Home />
       </>
@@ -146,6 +198,8 @@ const App: React.FC = () => {
 
   return (
     <>
+      {sessionExpired && <SessionExpiredModal />}
+      {rateLimited && <RateLimitedModal />}
       <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={userRoles} />
       <Routes>
         <Route path="/" element={<Home />} />
