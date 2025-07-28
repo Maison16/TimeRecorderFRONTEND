@@ -10,16 +10,6 @@ const CalendarDayOffPage: React.FC = () => {
     useEffect(() => {
         const checkAuthAndFetchProfile = async () => {
             try {
-                const res = await fetch(`${apiURL}/api/auth/check`, {
-                    method: 'GET',
-                    credentials: 'include',
-                });
-
-                if (!res.ok) throw new Error('Unauthorized');
-
-                const authData = await res.json();
-                if (!authData.isAuthenticated) throw new Error('Not authenticated');
-
                 const profileRes = await fetch(`${apiURL}/api/User/profile`, {
                     method: 'GET',
                     credentials: 'include',
@@ -29,9 +19,8 @@ const CalendarDayOffPage: React.FC = () => {
 
                 setIsLoading(false);
             } catch (err) {
-                console.log("Error checking auth or fetching profile:", err);
+                console.log("Error fetching profile:", err);
                 setIsLoading(false);
-                //setTimeout(() => navigate('/'), 0);
             }
         };
 

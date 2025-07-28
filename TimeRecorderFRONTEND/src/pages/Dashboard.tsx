@@ -9,44 +9,6 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetch(`${apiURL}/api/auth/check`, {
-      method: 'GET',
-      credentials: 'include',
-    })
-      .then(async res => {
-        if (res.status === 401) {
-          navigate('/');
-          return;
-        }
-        if (!res.ok) {
-          throw new Error('Błąd serwera');
-        }
-        const data = await res.json();
-        console.log("✅ Auth check:", data);
-
-        if (data.isAuthenticated) {
-          setUser({
-            id: data.id,
-            isAuthenticated: data.isAuthenticated,
-            name: data.name ?? '',
-            surname: data.surname ?? '',
-            email: data.email ?? '',
-            roles: data.roles || [],
-          });
-        } else {
-          navigate('/');
-        }
-
-      })
-      .catch(err => {
-        console.error("❌ Auth check error:", err);
-        navigate('/');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [navigate]);
 
   if (loading) return <LoadingSpinner />;
   if (!user || !user.roles || user.roles.length === 0) return null;

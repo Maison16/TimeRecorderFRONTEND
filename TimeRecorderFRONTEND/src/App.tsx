@@ -20,7 +20,6 @@ import DeleteWorkLogAdmin from './pages/admin/DeleteWorkLogAdmin';
 import SummaryAdminPage from './pages/admin/SummaryAdminPage';
 
 const App: React.FC = () => {
-  console.log("App component mounted");
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
   const isAuthenticated = useIsAuthenticated();
