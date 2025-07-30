@@ -10,18 +10,15 @@ interface NavBarProps {
   accounts: AccountInfo[];
   onLogin: () => void;
   onLogout: () => void;
-  userRoles: string[]; // <-- Dodajemy nowe prop: tablicę ról
+  userRoles: string[];
+  user?: import("../interfaces/types").UserDtoWithRolesAndAuthStatus | null;
 }
 
 const MyNavbar: React.FC<NavBarProps> = ({ accounts, onLogin, onLogout, userRoles }) => {
   const user = accounts[0];
 
-  // Rola admina będzie teraz pochodzić z props.userRoles
   const isAdmin = userRoles.includes("Admin");
   const isLoggedIn = accounts.length > 0;
-  // Do celów debugowania (możesz usunąć po upewnieniu się, że działa)
-  console.log("MyNavbar - Current user roles:", userRoles);
-  console.log("MyNavbar - Is Admin:", isAdmin);
 
   return (
     <Navbar bg="dark" variant="dark" expand="lg" fixed="top">

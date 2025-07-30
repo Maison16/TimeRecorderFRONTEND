@@ -1,7 +1,4 @@
-import React, { useEffect } from 'react';
-import { useMsal } from '@azure/msal-react';
-import { useNavigate } from 'react-router-dom';
-import { apiURL } from '../config';
+import React  from 'react';
 const Home: React.FC = () => {
 
   return (

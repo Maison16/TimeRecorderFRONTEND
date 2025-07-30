@@ -1,41 +1,39 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { apiURL } from "../config";
+import { UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
 
-const UserProfilePage: React.FC = () => {
+const UserProfilePage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
     const [profile, setProfile] = useState<any>(null);
     const [summary, setSummary] = useState<any>(null);
     const [project, setProject] = useState<any>(null);
     const [monthSummary, setMonthSummary] = useState<any>(null);
     const [yearSummary, setYearSummary] = useState<any>(null);
     useEffect(() => {
-        axios.get(`${apiURL}/api/User/profile`, { withCredentials: true })
-            .then(res => {
-                setProfile(res.data);
-                if (res.data?.id) {
-                    axios.get(`${apiURL}/api/User/${res.data.id}/project`, { withCredentials: true })
-                        .then(r => setProject(r.data))
-                        .catch(() => setProject(null));
-                    axios.get(`${apiURL}/api/Summary?userId=${res.data.id}`, { withCredentials: true })
-                        .then(r => {
-                            setSummary(r.data);
-                            console.log("Summary response:", r.data);
-                        })
-                        .catch(() => setSummary(null));
-                    const now = new Date();
-                    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                    const dateFrom = firstDay.toISOString();
-                    const dateTo = now.toISOString();
-                    axios.get(`${apiURL}/api/Summary?userId=${res.data.id}&dateFrom=${dateFrom}&dateTo=${dateTo}`, { withCredentials: true })
-                        .then(r => setMonthSummary(r.data))
-                        .catch(() => setMonthSummary(null));
-                    const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
-                    axios.get(`${apiURL}/api/Summary?userId=${res.data.id}&dateFrom=${yearStart}`, { withCredentials: true })
-                        .then(r => setYearSummary(r.data))
-                        .catch(() => setYearSummary(null));
-                }
-            });
-    }, []);
+        setProfile(user);
+        if (user?.id) {
+            axios.get(`${apiURL}/api/User/${user.id}/project`, { withCredentials: true })
+                .then(r => setProject(r.data))
+                .catch(() => setProject(null));
+            axios.get(`${apiURL}/api/Summary?userId=${user.id}`, { withCredentials: true })
+                .then(r => {
+                    setSummary(r.data);
+                    console.log("Summary response:", r.data);
+                })
+                .catch(() => setSummary(null));
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const dateFrom = firstDay.toISOString();
+            const dateTo = now.toISOString();
+            axios.get(`${apiURL}/api/Summary?userId=${user.id}&dateFrom=${dateFrom}&dateTo=${dateTo}`, { withCredentials: true })
+                .then(r => setMonthSummary(r.data))
+                .catch(() => setMonthSummary(null));
+            const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
+            axios.get(`${apiURL}/api/Summary?userId=${user.id}&dateFrom=${yearStart}`, { withCredentials: true })
+                .then(r => setYearSummary(r.data))
+                .catch(() => setYearSummary(null));
+        }
+    }, [user]);
 
     return (
         <div className="container pt-5" style={{ maxWidth: 600 }}>
