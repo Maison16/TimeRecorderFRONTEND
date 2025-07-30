@@ -44,7 +44,7 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
       const newStartDateObj = dayjs(startDate).toDate();
       const newEndDateObj = dayjs(endDate).toDate();
 
-      // Walidacja dat po stronie klienta
+      // Walidacja dat po stronie klienta dodatkowo
       if (newEndDateObj < newStartDateObj) {
         setEditError("End date cannot be before start date.");
         return;
@@ -58,7 +58,7 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
         setEditError("Failed to save changes. Please try again.");
       }
     } catch (err: any) {
-      // Wyłapywanie błędów z API
+
       setEditError(err.message || "An unexpected error occurred during save.");
     }
   };
@@ -102,7 +102,7 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="modal-input" // Dodaj klasy CSS do ostylowania
+              className="modal-input" 
             />
           </label>
           <label>
@@ -136,7 +136,7 @@ const EventDetailsModal: React.FC<Props> = ({ event, onClose, onCancel, onEdit }
           <p><strong>Reason:</strong> <span dangerouslySetInnerHTML={{ __html: typeof event.title === "string" ? event.title.replace(/\n/g, "<br />") : "no title" }} /></p>
 
           <div style={{ display: "flex", gap: "10px" }}>
-            {event.status !== DayOffStatus.Cancelled && event.status !== DayOffStatus.Rejected && (
+            {event.status !== DayOffStatus.Cancelled && (
               <button onClick={() => setIsEditing(true)}>Edit</button>
             )}
             {(event.status === DayOffStatus.Pending || event.status === DayOffStatus.Approved) && (

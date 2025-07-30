@@ -31,9 +31,23 @@ const App: React.FC = () => {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
   useEffect(() => {
-    if (!isAuthenticated) {
-      setUser(null);
-      setIsLoadingUser(false);
+    if (isAuthenticated) {
+      setIsLoadingUser(true);
+      fetch(`${apiURL}/api/User/profile`, {
+        method: 'GET',
+        credentials: 'include',
+      })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          console.log("PROFILE DATA", data);
+          setUser(data);
+          setIsAdmin(!!data?.roles?.includes("Admin"));
+        })
+        .catch(() => {
+          setUser(null);
+          setIsAdmin(false);
+        })
+        .finally(() => setIsLoadingUser(false));
     }
   }, [isAuthenticated]);
   useEffect(() => {
@@ -165,22 +179,16 @@ const App: React.FC = () => {
       </div>
     </div>
   );
-
-  if (!isAuthenticated) {
-    return (
-      <>
-        {sessionExpired && <SessionExpiredModal />}
-        {rateLimited && <RateLimitedModal />}
-        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={user?.roles || []} user={user} />
-        <Home />
-      </>
-    );
-  }
-
-  if (isLoadingUser || inProgress !== "none") {
-    return <Loading />;
-  }
-
+if (isLoadingUser || inProgress !== "none" || user === null) {
+  return (
+    <>
+      {sessionExpired && <SessionExpiredModal />}
+      {rateLimited && <RateLimitedModal />}
+      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
+      <Loading />
+    </>
+  );
+}
   return (
     <>
       {sessionExpired && <SessionExpiredModal />}
@@ -231,7 +239,7 @@ const App: React.FC = () => {
         <Route path="/profile" element={user?.isAuthenticated ? <UserProfilePage /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {user?.isAuthenticated && <WorkLogWidget userRoles={user?.roles || []} />}
+      {user.isAuthenticated && <WorkLogWidget userRoles={user.roles || []} />}
     </>
   );
 };
