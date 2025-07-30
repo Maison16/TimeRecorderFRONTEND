@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { UserDtoWithRolesAndAuthStatus } from './interfaces/types';
-import { useMsal, useIsAuthenticated } from '@azure/msal-react';
+import { useMsal } from '@azure/msal-react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { apiURL } from './config';
@@ -23,13 +23,20 @@ import SummaryAdminPage from './pages/admin/SummaryAdminPage';
 const App: React.FC = () => {
   const { instance, accounts } = useMsal();
   const navigate = useNavigate();
-  const isAuthenticated = useIsAuthenticated();
   const { inProgress } = useMsal();
 
   // Pobieraj usera z localStorage przy starcie
   const [user, setUser] = useState<UserDtoWithRolesAndAuthStatus | null>(() => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return !!parsed?.isAuthenticated;
+    }
+    return false;
   });
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isAdmin, setIsAdmin] = useState(() => {
@@ -203,28 +210,28 @@ const App: React.FC = () => {
     </div>
   );
 
-    if (!isAuthenticated) {
-    return (
-      <>
-        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </>
-    );
-  }
+if (isLoadingUser || inProgress !== "none") {
+  return (
+    <>
+      {sessionExpired && <SessionExpiredModal />}
+      {rateLimited && <RateLimitedModal />}
+      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
+      <Loading />
+    </>
+  );
+}
 
-  if (isLoadingUser || inProgress !== "none" || user === null) {
-    return (
-      <>
-        {sessionExpired && <SessionExpiredModal />}
-        {rateLimited && <RateLimitedModal />}
-        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
-        <Loading />
-      </>
-    );
-  }
+if (!isAuthenticated) {
+  return (
+    <>
+      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </>
+  );
+}
   return (
     <>
       {sessionExpired && <SessionExpiredModal />}
@@ -275,7 +282,7 @@ const App: React.FC = () => {
         <Route path="/profile" element={user?.isAuthenticated ? <UserProfilePage user={user} /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {user.isAuthenticated && <WorkLogWidget userRoles={user.roles || []} user={user} />}
+      {user?.isAuthenticated && <WorkLogWidget userRoles={user.roles || []} user={user} />}
     </>
   );
 };
