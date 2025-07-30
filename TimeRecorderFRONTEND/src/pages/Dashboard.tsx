@@ -3,29 +3,13 @@ import type { UserDtoWithRolesAndAuthStatus } from '../interfaces/types';
 import { apiURL } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-const Dashboard: React.FC = () => {
-  const [user, setUser] = useState<UserDtoWithRolesAndAuthStatus | null>(null);
+const Dashboard: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch(`${apiURL}/api/User/profile`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error('Unauthorized');
-        const data = await res.json();
-        setUser(data);
-      } catch (err) {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
+    setLoading(false);
 
     if (audioRef.current) {
       audioRef.current.volume = 0.3;

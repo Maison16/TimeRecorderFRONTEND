@@ -5,7 +5,7 @@ import { enUS } from "date-fns/locale";
 import axios from "axios";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import qs from "qs";
-import { CalendarEvent, DayOffRequestDto, UserDto } from "../interfaces/types";
+import { CalendarEvent, DayOffRequestDto, UserDto, UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
 import { DayOffStatus } from "../enums/DayOffStatus";
 import { apiURL } from "../config";
 import Legend from "./Legend";
@@ -26,7 +26,7 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-const DayOffCalendar = () => {
+const DayOffCalendar: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
   const api = axios.create({
     baseURL: apiURL,
     withCredentials: true,
@@ -196,6 +196,8 @@ const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
       },
     };
   };
+
+  const isAdmin = user?.roles?.includes("Admin");
 
   return (
     <Tabs selectedIndex={tabIndex} onSelect={(i) => setTabIndex(i)}>

@@ -8,7 +8,7 @@ import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-tabs/style/react-tabs.css";
 import UserSelect from "../components/UserSelect";
-import { UserDto } from "../interfaces/types";
+import { UserDto, UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
 import { Modal, Button, Form } from "react-bootstrap";
 
 const locales = { "en-US": enUS };
@@ -72,7 +72,7 @@ const mapToEvents = (data: WorkLogDto[]): CalendarEvent[] =>
     userSurname: log.userSurname,
   }));
 
-const WorkLogCalendarPage: React.FC = () => {
+const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
   const [myEvents, setMyEvents] = useState<CalendarEvent[]>([]);
   const [teamEvents, setTeamEvents] = useState<CalendarEvent[]>([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -88,7 +88,9 @@ const WorkLogCalendarPage: React.FC = () => {
   });
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Ustaw isAdmin na podstawie user.roles
+  const isAdmin = user?.roles?.includes("Admin");
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -99,14 +101,10 @@ const WorkLogCalendarPage: React.FC = () => {
         const usersRes = await axios.get(`${apiURL}/api/User`, { withCredentials: true });
         setUsers(usersRes.data);
         setTeamEvents([]);
-        // Sprawdź rolę użytkownika
-        const profileRes = await axios.get(`${apiURL}/api/User/profile`, { withCredentials: true });
-        setIsAdmin(profileRes.data?.roles?.includes("Admin"));
       } catch (e) {
         setMyEvents([]);
         setTeamEvents([]);
         setUsers([]);
-        setIsAdmin(false);
       } finally {
         setLoading(false);
       }

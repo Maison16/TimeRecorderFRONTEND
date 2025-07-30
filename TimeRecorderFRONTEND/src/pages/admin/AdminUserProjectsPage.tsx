@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { apiURL } from "../../config";
-
+import { UserDtoWithRolesAndAuthStatus } from "../../interfaces/types";
 interface UserDto {
     id: string;
     name: string;
@@ -15,7 +15,7 @@ interface ProjectDto {
     name: string;
 }
 
-const AdminUserProjectsPage: React.FC = () => {
+const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
     const [users, setUsers] = useState<UserDto[]>([]);
     const [projects, setProjects] = useState<ProjectDto[]>([]);
     const [selectedProject, setSelectedProject] = useState<{ [userId: string]: number }>({});

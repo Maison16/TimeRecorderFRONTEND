@@ -3,10 +3,11 @@ import axios from "axios";
 import { apiURL } from "../config";
 import { Button, Card, Spinner } from "react-bootstrap";
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import { UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
 
 const POLL_INTERVAL = 100000; // 100 seconds
 
-const WorkStatusWidget: React.FC<{ userRoles: string[] }> = ({ userRoles }) => {
+const WorkStatusWidget: React.FC<{ userRoles: string[]; user: UserDtoWithRolesAndAuthStatus }> = ({ userRoles, user }) => {
   if (!userRoles || userRoles.length === 0) {
     return null;
   }

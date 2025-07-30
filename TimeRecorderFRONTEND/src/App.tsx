@@ -25,12 +25,26 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const isAuthenticated = useIsAuthenticated();
   const { inProgress } = useMsal();
-  const [user, setUser] = useState<UserDtoWithRolesAndAuthStatus | null>(null);
+
+  // Pobieraj usera z localStorage przy starcie
+  const [user, setUser] = useState<UserDtoWithRolesAndAuthStatus | null>(() => {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
   const [isLoadingUser, setIsLoadingUser] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return !!parsed?.roles?.includes("Admin");
+    }
+    return false;
+  });
   const [sessionExpired, setSessionExpired] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
+
   useEffect(() => {
+    // Pobierz usera z backendu tylko przy logowaniu lub odświeżeniu
     if (isAuthenticated) {
       setIsLoadingUser(true);
       fetch(`${apiURL}/api/User/profile`, {
@@ -39,17 +53,23 @@ const App: React.FC = () => {
       })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          console.log("PROFILE DATA", data);
           setUser(data);
+          localStorage.setItem("user", JSON.stringify(data));
           setIsAdmin(!!data?.roles?.includes("Admin"));
         })
         .catch(() => {
           setUser(null);
+          localStorage.removeItem("user");
           setIsAdmin(false);
         })
         .finally(() => setIsLoadingUser(false));
+    } else {
+      setUser(null);
+      localStorage.removeItem("user");
+      setIsAdmin(false);
     }
   }, [isAuthenticated]);
+
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       response => response,
@@ -73,7 +93,7 @@ const App: React.FC = () => {
       axios.interceptors.response.eject(interceptor);
     };
   }, [isAuthenticated, isLoadingUser]);
-  // Modal for rate limiting
+
   const RateLimitedModal = () => (
     <div style={{
       position: 'fixed',
@@ -94,6 +114,7 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+
   const handleLogin = () => {
     instance.loginPopup({
       scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all'],
@@ -107,8 +128,6 @@ const App: React.FC = () => {
               account,
               scopes: ['api://8b8a49ef-3242-4695-985d-9a7eb39071ae/TimeRecorderBACKEND.all'],
             });
-            console.log('Token acquired:', tokenResponse.accessToken);
-
             const loginRes = await fetch(`${apiURL}/api/auth/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -118,16 +137,19 @@ const App: React.FC = () => {
             if (loginRes.ok) {
               const loginData = await loginRes.json();
               setUser(loginData);
+              localStorage.setItem("user", JSON.stringify(loginData));
               setIsLoadingUser(false);
               setIsAdmin(!!loginData.roles?.includes("Admin"));
               navigate('/dashboard');
             } else {
               setUser(null);
+              localStorage.removeItem("user");
               setIsLoadingUser(false);
               setIsAdmin(false);
             }
           } catch (tokenError) {
             setUser(null);
+            localStorage.removeItem("user");
             setIsLoadingUser(false);
             setIsAdmin(false);
             console.error('Token acquisition error:', tokenError);
@@ -136,11 +158,13 @@ const App: React.FC = () => {
       })
       .catch(error => {
         setUser(null);
+        localStorage.removeItem("user");
         setIsLoadingUser(false);
         setIsAdmin(false);
         console.error('Login error:', error);
       });
   };
+
   const handleLogout = () => {
     fetch('/api/auth/logout', {
       method: 'POST',
@@ -151,14 +175,13 @@ const App: React.FC = () => {
         onRedirectNavigate: () => false,
       });
       setUser(null);
+      localStorage.removeItem("user");
       setIsLoadingUser(false);
       setIsAdmin(false);
       navigate('/');
     });
   };
 
-
-  // Modal session expired
   const SessionExpiredModal = () => (
     <div style={{
       position: 'fixed',
@@ -179,16 +202,29 @@ const App: React.FC = () => {
       </div>
     </div>
   );
-if (isLoadingUser || inProgress !== "none" || user === null) {
-  return (
-    <>
-      {sessionExpired && <SessionExpiredModal />}
-      {rateLimited && <RateLimitedModal />}
-      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
-      <Loading />
-    </>
-  );
-}
+
+    if (!isAuthenticated) {
+    return (
+      <>
+        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </>
+    );
+  }
+
+  if (isLoadingUser || inProgress !== "none" || user === null) {
+    return (
+      <>
+        {sessionExpired && <SessionExpiredModal />}
+        {rateLimited && <RateLimitedModal />}
+        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
+        <Loading />
+      </>
+    );
+  }
   return (
     <>
       {sessionExpired && <SessionExpiredModal />}
@@ -198,11 +234,11 @@ if (isLoadingUser || inProgress !== "none" || user === null) {
         <Route path="/" element={<Home />} />
         <Route
           path="/dashboard"
-          element={user?.isAuthenticated ? <Dashboard /> : <Navigate to="/" />}
+          element={user?.isAuthenticated ? <Dashboard user={user} /> : <Navigate to="/" />}
         />
         <Route
           path="/dayoff"
-          element={user?.isAuthenticated ? <CalendarDayOffPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated ? <CalendarDayOffPage user={user} /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/pendingAdmin"
@@ -222,7 +258,7 @@ if (isLoadingUser || inProgress !== "none" || user === null) {
         />
         <Route
           path="/admin/user-projects"
-          element={user?.isAuthenticated && isAdmin ? <AdminUserProjectsPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <AdminUserProjectsPage user={user} /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/summary"
@@ -234,12 +270,12 @@ if (isLoadingUser || inProgress !== "none" || user === null) {
         />
         <Route
           path="/worklogs"
-          element={user?.isAuthenticated ? <WorkLogCalendarPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated ? <WorkLogCalendarPage user={user} /> : <Navigate to="/" />}
         />
-        <Route path="/profile" element={user?.isAuthenticated ? <UserProfilePage /> : <Navigate to="/" />} />
+        <Route path="/profile" element={user?.isAuthenticated ? <UserProfilePage user={user} /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {user.isAuthenticated && <WorkLogWidget userRoles={user.roles || []} />}
+      {user.isAuthenticated && <WorkLogWidget userRoles={user.roles || []} user={user} />}
     </>
   );
 };
