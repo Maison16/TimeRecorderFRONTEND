@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { UserDtoWithRolesAndAuthStatus } from './interfaces/types';
 import { useMsal, useIsAuthenticated } from '@azure/msal-react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -24,42 +25,15 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const isAuthenticated = useIsAuthenticated();
   const { inProgress } = useMsal();
-  const [userRoles, setUserRoles] = useState<string[]>([]);
-  const [isLoadingUserRoles, setIsLoadingUserRoles] = useState(true);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [user, setUser] = useState<UserDtoWithRolesAndAuthStatus | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
-  const fetchUserRoles = async () => {
-    try {
-      setIsLoadingUserRoles(true);
-      console.log("Fetching user roles...");
-      const response = await axios.get(`${apiURL}/api/auth/check`, { withCredentials: true });
-      console.log("User roles response:", response.data);
-
-      if (response.data && response.data.roles) {
-        setUserRoles(response.data.roles);
-        setIsAdmin(response.data.roles.includes("Admin"));
-      } else {
-        setUserRoles([]);
-        setIsAdmin(false);
-      }
-    } catch (error) {
-      console.error("Error fetching user roles from backend:", error);
-      setUserRoles([]);
-      setIsAdmin(false);
-    } finally {
-      setIsLoadingUserRoles(false);
-    }
-  };
-
-
   useEffect(() => {
-    console.log("isAuthenticated:", isAuthenticated);
-    if (isAuthenticated) {
-      fetchUserRoles();
-    } else {
-      setUserRoles([]);
-      setIsLoadingUserRoles(false);
+    if (!isAuthenticated) {
+      setUser(null);
+      setIsLoadingUser(false);
     }
   }, [isAuthenticated]);
   useEffect(() => {
@@ -70,7 +44,7 @@ const App: React.FC = () => {
           if (
             error.response.status === 401 &&
             isAuthenticated &&
-            !isLoadingUserRoles
+            !isLoadingUser
           ) {
             setSessionExpired(true);
             handleLogout();
@@ -84,7 +58,7 @@ const App: React.FC = () => {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, [isAuthenticated, isLoadingUserRoles]);
+  }, [isAuthenticated, isLoadingUser]);
   // Modal for rate limiting
   const RateLimitedModal = () => (
     <div style={{
@@ -113,7 +87,6 @@ const App: React.FC = () => {
     })
       .then(async (response) => {
         const account = response.account;
-
         if (account) {
           try {
             const tokenResponse = await instance.acquireTokenSilent({
@@ -122,22 +95,35 @@ const App: React.FC = () => {
             });
             console.log('Token acquired:', tokenResponse.accessToken);
 
-            await fetch('/api/auth/login', {
+            const loginRes = await fetch(`${apiURL}/api/auth/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token: tokenResponse.accessToken }),
               credentials: 'include',
             });
-
-            console.log('Login successful, backend should set HttpOnly cookie');
-            await fetchUserRoles();
-            navigate('/dashboard');
+            if (loginRes.ok) {
+              const loginData = await loginRes.json();
+              setUser(loginData);
+              setIsLoadingUser(false);
+              setIsAdmin(!!loginData.roles?.includes("Admin"));
+              navigate('/dashboard');
+            } else {
+              setUser(null);
+              setIsLoadingUser(false);
+              setIsAdmin(false);
+            }
           } catch (tokenError) {
+            setUser(null);
+            setIsLoadingUser(false);
+            setIsAdmin(false);
             console.error('Token acquisition error:', tokenError);
           }
         }
       })
       .catch(error => {
+        setUser(null);
+        setIsLoadingUser(false);
+        setIsAdmin(false);
         console.error('Login error:', error);
       });
   };
@@ -150,8 +136,9 @@ const App: React.FC = () => {
         postLogoutRedirectUri: "/",
         onRedirectNavigate: () => false,
       });
-      setUserRoles([]);
-      setIsLoadingUserRoles(false);
+      setUser(null);
+      setIsLoadingUser(false);
+      setIsAdmin(false);
       navigate('/');
     });
   };
@@ -184,14 +171,13 @@ const App: React.FC = () => {
       <>
         {sessionExpired && <SessionExpiredModal />}
         {rateLimited && <RateLimitedModal />}
-        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} />
+        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={user?.roles || []} user={user} />
         <Home />
       </>
     );
   }
 
-  if (isLoadingUserRoles || inProgress !== "none" || isAdmin === null) {  
-    console.log("Loading user roles or MSAL in progress");
+  if (isLoadingUser || inProgress !== "none") {
     return <Loading />;
   }
 
@@ -199,53 +185,53 @@ const App: React.FC = () => {
     <>
       {sessionExpired && <SessionExpiredModal />}
       {rateLimited && <RateLimitedModal />}
-      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={userRoles} />
+      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={user?.roles || []} user={user} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route
           path="/dashboard"
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/" />}
+          element={user?.isAuthenticated ? <Dashboard /> : <Navigate to="/" />}
         />
         <Route
           path="/dayoff"
-          element={isAuthenticated ? <CalendarDayOffPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated ? <CalendarDayOffPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/pendingAdmin"
-          element={isAuthenticated && isAdmin ? <PendingDayOffAdmin /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <PendingDayOffAdmin /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/deleteDayOff"
-          element={isAuthenticated && isAdmin ? <DeleteDayOffAdmin /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <DeleteDayOffAdmin /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/deleteWorkLog"
-          element={isAuthenticated && isAdmin ? <DeleteWorkLogAdmin /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <DeleteWorkLogAdmin /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/projects"
-          element={isAuthenticated && isAdmin ? <AdminProjectsPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <AdminProjectsPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/user-projects"
-          element={isAuthenticated && isAdmin ? <AdminUserProjectsPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <AdminUserProjectsPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/summary"
-          element={isAuthenticated && isAdmin ? <SummaryAdminPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <SummaryAdminPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/settings"
-          element={isAuthenticated && isAdmin ? <SettingsAdmin /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <SettingsAdmin /> : <Navigate to="/" />}
         />
         <Route
           path="/worklogs"
-          element={isAuthenticated ? <WorkLogCalendarPage /> : <Navigate to="/" />}
+          element={user?.isAuthenticated ? <WorkLogCalendarPage /> : <Navigate to="/" />}
         />
-        <Route path="/profile" element={isAuthenticated ? <UserProfilePage /> : <Navigate to="/" />} />
+        <Route path="/profile" element={user?.isAuthenticated ? <UserProfilePage /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {isAuthenticated && <WorkLogWidget userRoles={userRoles} />}
+      {user?.isAuthenticated && <WorkLogWidget userRoles={user?.roles || []} />}
     </>
   );
 };

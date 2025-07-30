@@ -27,6 +27,7 @@ const Dashboard: React.FC = () => {
       }
     };
     fetchProfile();
+
     if (audioRef.current) {
       audioRef.current.volume = 0.3;
       audioRef.current.play().catch(() => {});
