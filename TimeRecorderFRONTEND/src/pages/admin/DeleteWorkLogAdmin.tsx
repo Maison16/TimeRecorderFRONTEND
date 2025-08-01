@@ -71,13 +71,6 @@ const DeleteWorkLogAdmin: React.FC = () => {
             });
             setLogs(res.data);
             
-            console.log('API Response:', {
-                dataLength: res.data.length,
-                pageNumber: pageNumber,
-                pageSize: pageSize,
-                headers: res.headers
-            });
-            
             const totalCountHeader = res.headers['x-total-count'];
             if (totalCountHeader) {
                 setTotalCount(parseInt(totalCountHeader));
