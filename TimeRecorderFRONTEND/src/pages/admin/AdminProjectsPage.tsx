@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { apiURL } from "../../config";
-
-interface ProjectDto {
-  id: number;
-  name: string;
-  description: string;
-}
+import { ProjectDto } from "../../interfaces/types";
 
 const AdminProjectsPage: React.FC = () => {
   const [projects, setProjects] = useState<ProjectDto[]>([]);

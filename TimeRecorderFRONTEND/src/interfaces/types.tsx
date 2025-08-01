@@ -65,3 +65,17 @@ export interface Settings {
   syncUsersDays: SyncDayOfWeek[];    // only for Weekly
   syncUsersMonthDay: number;         // only for Monthly
 }
+
+export interface ProjectDto {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+export interface UserDtoWithProject {
+  id: string;
+  name: string;
+  surname: string;
+  email: string;
+  project?: ProjectDto | null;
+}
