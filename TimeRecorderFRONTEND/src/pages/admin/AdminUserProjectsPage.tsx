@@ -60,7 +60,6 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
             } catch {
                 setUserProjects(prev => ({ ...prev, [userId]: null }));
             }
-            console.log(`Assigned user ${userId} to project ${projectId}`);
         } catch (err) {
             console.error("Assign error:", err);
         }
@@ -70,7 +69,6 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
         try {
             await axios.post(`${apiURL}/api/User/${userId}/unassign-project`, {}, { withCredentials: true });
             setUserProjects(prev => ({ ...prev, [userId]: null }));
-            console.log(`Unassigned project from user ${userId}`);
         } catch (err) {
             console.error("Unassign error:", err);
         }

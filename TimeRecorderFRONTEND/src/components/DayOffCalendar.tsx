@@ -51,20 +51,20 @@ const DayOffCalendar: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ use
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   };
 
-const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
-  data.map((e) => {
-    const start = stripTimeZone(e.dateStart);
-    const end = stripTimeZone(e.dateEnd);
-    const fixedEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-    return {
-      title: e.reason && e.reason.trim() ? e.reason : "-No reason-", 
-      start,
-      end: fixedEnd,
-      allDay: true,
-      status: e.status,
-      id: e.id,
-    };
-  });
+  const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
+    data.map((e) => {
+      const start = stripTimeZone(e.dateStart);
+      const end = stripTimeZone(e.dateEnd);
+      const fixedEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+      return {
+        title: e.reason && e.reason.trim() ? e.reason : "-No reason-",
+        start,
+        end: fixedEnd,
+        allDay: true,
+        status: e.status,
+        id: e.id,
+      };
+    });
   const fetchMyEvents = () =>
     api
       .get<DayOffRequestDto[]>("api/DayOff/user",
@@ -160,7 +160,7 @@ const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
           newReason: newReason,
         },
       });
-      console.log("Edit API response:", response.data);
+
       if (response.status === 200) {
         alert("Day off request edited successfully!");
         setSelectedEvent(null);
@@ -226,7 +226,6 @@ const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
               const today = new Date();
               const ev = event as CalendarEvent;
               if (ev.end && ev.end > startOfDay(today)) {
-                console.log("Selected event:", ev);
                 setSelectedEvent(ev);
               }
             }}
@@ -266,12 +265,17 @@ const mapToEvents = (data: DayOffRequestDto[]): CalendarEvent[] =>
         reason={reason}
         setReason={setReason}
         onSubmit={submitSelectedRange}
-        onClose={() => setSelectedRange(null)}
+        onClose={() => {
+          setSelectedRange(null); 
+          setReason("");         
+        }}
       />
 
       <EventDetailsModal
         event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
+        onClose={() => {
+          setSelectedEvent(null);
+        }}
         onCancel={cancelEvent}
         onEdit={editEvent}
 

@@ -18,7 +18,6 @@ const UserProfilePage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ us
             axios.get(`${apiURL}/api/Summary?userId=${user.id}`, { withCredentials: true })
                 .then(r => {
                     setSummary(r.data);
-                    console.log("Summary response:", r.data);
                 })
                 .catch(() => setSummary(null));
             const now = new Date();

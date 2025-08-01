@@ -51,7 +51,6 @@ const App: React.FC = () => {
   const [rateLimited, setRateLimited] = useState(false);
 
   useEffect(() => {
-    // Pobierz usera z backendu tylko przy logowaniu lub odświeżeniu
     if (isAuthenticated) {
       setIsLoadingUser(true);
       fetch(`${apiURL}/api/User/profile`, {
@@ -60,9 +59,22 @@ const App: React.FC = () => {
       })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          setUser(data);
-          localStorage.setItem("user", JSON.stringify(data));
-          setIsAdmin(!!data?.roles?.includes("Admin"));
+          // Jeśli backend zwraca id: null, NIE nadpisuj usera z localStorage!
+          if (data && data.id) {
+            setUser(data);
+            localStorage.setItem("user", JSON.stringify(data));
+            setIsAdmin(!!data?.roles?.includes("Admin"));
+          } else {
+            // Zachowaj usera z localStorage
+            const stored = localStorage.getItem("user");
+            if (stored) {
+              setUser(JSON.parse(stored));
+              setIsAdmin(JSON.parse(stored)?.roles?.includes("Admin"));
+            } else {
+              setUser(null);
+              setIsAdmin(false);
+            }
+          }
         })
         .catch(() => {
           setUser(null);
@@ -282,8 +294,7 @@ if (!isAuthenticated) {
         <Route path="/profile" element={user?.isAuthenticated ? <UserProfilePage user={user} /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      {user?.isAuthenticated && <WorkLogWidget userRoles={user.roles || []} user={user} />}
-    </>
+      {user?.isAuthenticated && <WorkLogWidget userRoles={user.roles || []} user={user} />}    </>
   );
 };
 
