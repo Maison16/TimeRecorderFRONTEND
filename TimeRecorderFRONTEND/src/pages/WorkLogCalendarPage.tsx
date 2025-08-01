@@ -5,11 +5,10 @@ import axios from "axios";
 import { apiURL } from "../config";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
-import UserSelect from "../components/UserSelect";
+import UserMultiSelect from "../components/UserMultiSelect";
 import { UserDto, UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
 import { Modal, Button, Form } from "react-bootstrap";
 import { WorkLogType, WorkLogStatus } from "../enums/WorkLogEnums";
-
 type WorkLogDto = {
   id: number;
   startTime: string;
@@ -77,6 +76,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
       }
       : null
   );
+  const [selectedUsers, setSelectedUsers] = useState<UserDto[]>([]);
   const [editWorkLog, setEditWorkLog] = useState<any | null>(null);
   const [editForm, setEditForm] = useState<{ start: string; end: string; type: number; status: number }>({
     start: "",
@@ -112,10 +112,10 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
   }, [user?.id, calendarDate]);
 
   useEffect(() => {
-    if (selectedUser) {
-      fetchTeamLogs(selectedUser.id, calendarDate);
+    if (selectedUsers.length > 0) {
+      fetchTeamLogs(selectedUsers.map(user => user.id), teamCalendarDate);
     }
-  }, [selectedUser, calendarDate]);
+  }, [selectedUsers, teamCalendarDate]);
 
   useEffect(() => {
     if (user && typeof user.name === "string" && user.name !== null && typeof user.surname === "string" && user.surname !== null) {
@@ -130,13 +130,18 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
     }
   }, [user]);
 
-  const fetchTeamLogs = async (userId: string, date: Date) => {
+  const fetchTeamLogs = async (userIds: string[], date: Date) => {
     setLoading(true);
     try {
-      const dateStr = date.toISOString().slice(0, 10);
-      const res = await axios.get(
-        `${apiURL}/api/WorkLog/filter?userId=${userId}&date=${dateStr}`,
-        { withCredentials: true }
+      const res = await axios.post(
+        `${apiURL}/api/WorkLog/filter-multi`,
+        userIds,
+        {
+          params: {
+            startDay: date.toISOString().slice(0, 10),
+          },
+          withCredentials: true,
+        }
       );
       setTeamEvents(mapToTimelineItems(res.data));
     } catch {
@@ -183,7 +188,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
         type: editForm.type
       }, { withCredentials: true });
       setEditWorkLog(null);
-      if (selectedUser) fetchTeamLogs(selectedUser.id, calendarDate);
+      if (selectedUsers.length > 0) fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
       else {
         const dateStr = calendarDate.toISOString().slice(0, 10);
         const myRes = await axios.get(
@@ -206,8 +211,8 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
       await axios.delete(`${apiURL}/api/WorkLog/${editWorkLog.id}`, { withCredentials: true });
       setEditWorkLog(null);
       setShowDeleteConfirm(false);
-      if (selectedUser) {
-        await fetchTeamLogs(selectedUser.id, calendarDate);
+      if (selectedUsers.length > 0) {
+        await fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
       } else {
         const dateStr = calendarDate.toISOString().slice(0, 10);
         const myRes = await axios.get(
@@ -232,6 +237,11 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
   dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(calendarDate);
   dayEnd.setHours(23, 59, 59, 999);
+
+  const teamDayStart = new Date(teamCalendarDate);
+  teamDayStart.setHours(0, 0, 0, 0);
+  const teamDayEnd = new Date(teamCalendarDate);
+  teamDayEnd.setHours(23, 59, 59, 999);
 
   return (
     <div className="container pt-5" style={{ maxWidth: 1400 }}>
@@ -263,8 +273,13 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
             visibleTimeStart={dayStart.getTime()}
             visibleTimeEnd={dayEnd.getTime()}
             onItemClick={handleEventClick}
+            canMove={false}
+            canResize={false}
             sidebarWidth={120}
             lineHeight={32}
+            onTimeChange={(start, end) => {
+              setCalendarDate(new Date(start));
+            }}
           >
             <CustomMarker date={Date.now()}>
               {({ styles }) => (
@@ -283,10 +298,10 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
         </TabPanel>
         <TabPanel>
           <div style={{ marginBottom: 16 }}>
-            <UserSelect
+            <UserMultiSelect
               users={users}
-              selectedUser={selectedUser}
-              onChange={user => setSelectedUser(user)}
+              selectedUsers={selectedUsers}
+              onChange={setSelectedUsers}
             />
             <Form.Label>Choose day:</Form.Label>
             <Form.Control
@@ -302,15 +317,37 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
             />
           </div>
           <Timeline
-            groups={selectedUser ? [
-              { id: selectedUser.id, title: `${selectedUser.name} ${selectedUser.surname}` }
-            ] : []}
+            key={teamCalendarDate.toISOString() + teamEvents.length}
+            groups={selectedUsers.map(u => ({
+              id: u.id,
+              title: `${u.name} ${u.surname}`,
+            }))}
             items={teamEvents}
-            visibleTimeStart={dayStart.getTime()}
-            visibleTimeEnd={dayEnd.getTime()}
+            visibleTimeStart={teamDayStart.getTime()}
+            visibleTimeEnd={teamDayEnd.getTime()}
             onItemClick={handleEventClick}
+            canMove={false}
+            canResize={false}
             sidebarWidth={120}
-            lineHeight={32} />
+            lineHeight={32}
+            onTimeChange={(start, end) => {
+              setTeamCalendarDate(new Date(start));
+            }}
+          >
+            <CustomMarker date={Date.now()}>
+              {({ styles }) => (
+                <div
+                  style={{
+                    ...styles,
+                    background: "red",
+                    width: "2px",
+                    height: "100%",
+                    zIndex: 10,
+                  }}
+                />
+              )}
+            </CustomMarker>
+          </Timeline>
         </TabPanel>
       </Tabs>
 
@@ -369,7 +406,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
                       : `Duration: ${editWorkLog.duration} min`}
                 </div>
               )}
-              {editWorkLog?.createdAt && editWorkLog?.start_time && (() => {
+              {editWorkLog?.createdAt && editWorkLog?.start_time && editWorkLog.status === WorkLogStatus.RequiresAttention && (() => {
                 const created = new Date(editWorkLog.createdAt);
                 const started = new Date(editWorkLog.start_time);
                 const sameHourMinute =
@@ -412,7 +449,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
                       { withCredentials: true }
                     );
                     setEditWorkLog(null);
-                    if (selectedUser) fetchTeamLogs(selectedUser.id, calendarDate);
+                    if (selectedUsers.length > 0) fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
                     else {
                       const dateStr = calendarDate.toISOString().slice(0, 10);
                       const myRes = await axios.get(
@@ -443,7 +480,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
                       { withCredentials: true }
                     );
                     setEditWorkLog(null);
-                    if (selectedUser) fetchTeamLogs(selectedUser.id, calendarDate);
+                    if (selectedUsers.length > 0) fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
                     else {
                       const dateStr = calendarDate.toISOString().slice(0, 10);
                       const myRes = await axios.get(
