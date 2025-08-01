@@ -6,12 +6,12 @@ interface Props {
   users: UserDto[];
   selectedUsers: UserDto[];
   onChange: (users: UserDto[]) => void;
+  noUsersSelectedText?: string;
 }
 
-const UserMultiSelect: React.FC<Props> = ({ users, selectedUsers, onChange }) => {
+const UserMultiSelect: React.FC<Props> = ({ users, selectedUsers, onChange, noUsersSelectedText }) => {
   const [search, setSearch] = useState("");
 
-  // Filtruj użytkowników po emailu, pomijając już wybranych
   const filtered = users.filter(
     u =>
       u.email?.toLowerCase().includes(search.toLowerCase()) &&
@@ -58,7 +58,9 @@ const UserMultiSelect: React.FC<Props> = ({ users, selectedUsers, onChange }) =>
       <Form.Label>Selected users:</Form.Label>
       <ListGroup>
         {selectedUsers.length === 0 && (
-          <ListGroup.Item disabled>No users selected</ListGroup.Item>
+          <ListGroup.Item disabled>
+            {noUsersSelectedText || "No users selected"}
+          </ListGroup.Item>
         )}
         {selectedUsers.map(u => (
           <ListGroup.Item key={u.id} className="d-flex justify-content-between align-items-center">

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import qs from "qs";
 import { apiURL } from "../../config";
 import UserSelect from "../../components/UserSelect";
+import UserMultiSelect from "../../components/UserMultiSelect";
 import type { SummaryListDto, SummaryDto, UserDto } from "../../interfaces/types";
 
 type ProjectDto = { id: string; name: string };
@@ -24,24 +26,34 @@ const SummaryAdminPage: React.FC = () => {
   const [dailySummaries, setDailySummaries] = useState<SummaryDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [range, setRange] = useState("today");
+  const [selectedUsers, setSelectedUsers] = useState<UserDto[]>([]);
+
+  function formatDateLocal(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
   useEffect(() => {
     const now = new Date();
     if (range === "today") {
-      setDateFrom(now.toISOString().slice(0, 10));
-      setDateTo(now.toISOString().slice(0, 10));
+      setDateFrom(formatDateLocal(now));
+      setDateTo(formatDateLocal(now));
     } else if (range === "week") {
       const start = new Date(now);
       start.setDate(now.getDate() - now.getDay() + 1);
       const end = new Date(start);
       end.setDate(start.getDate() + 6);
-      setDateFrom(start.toISOString().slice(0, 10));
-      setDateTo(end.toISOString().slice(0, 10));
+      setDateFrom(formatDateLocal(start));
+      setDateTo(formatDateLocal(end));
     } else if (range === "month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      setDateFrom(start.toISOString().slice(0, 10));
-      setDateTo(end.toISOString().slice(0, 10));
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0);
+      setDateFrom(formatDateLocal(start));
+      setDateTo(formatDateLocal(end));
     }
   }, [range]);
 
@@ -60,11 +72,12 @@ const SummaryAdminPage: React.FC = () => {
       const params: any = {};
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
-      if (selectedUser && selectedUser.id) params.userId = selectedUser.id;
+      if (selectedUsers.length > 0) params.usersId = selectedUsers.map(u => u.id); 
       if (selectedProject) params.projectId = selectedProject.id;
-
+      console.log("Fetching summary with params:", params);
       const res = await axios.get<SummaryListDto>(`${apiURL}/api/Summary/daily`, {
         params,
+        paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" }),
         withCredentials: true,
       });
       setDailySummaries(res.data.summaries);
@@ -75,8 +88,21 @@ const SummaryAdminPage: React.FC = () => {
     setLoading(false);
   };
 
+  const groupedSummaries = dailySummaries.reduce((acc, curr) => {
+    const key = curr.userEmail ?? "";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(curr);
+    return acc;
+  }, {} as Record<string, SummaryDto[]>);
+
+  const getUserTotalWork = (summaries: SummaryDto[]) =>
+    summaries.reduce((sum, s) => sum + s.totalWorkTimeMinutes, 0);
+
+  const getUserTotalBreak = (summaries: SummaryDto[]) =>
+    summaries.reduce((sum, s) => sum + s.totalBreakTimeMinutes, 0);
+
   return (
-    <div className="container pt-5" style={{ maxWidth: 800 }}>
+    <div className="container pt-5" style={{ maxWidth: 1100 }}>
       <h2 className="mb-4 text-center">Team/Employee/Project Summary</h2>
       <div className="row mb-3">
         <div className="col-md-3">
@@ -98,14 +124,6 @@ const SummaryAdminPage: React.FC = () => {
           />
         </div>
         <div className="col-md-3">
-          <label>User</label>
-          <UserSelect
-            users={users}
-            selectedUser={selectedUser}
-            onChange={setSelectedUser}
-          />
-        </div>
-        <div className="col-md-3">
           <label>Project</label>
           <select
             className="form-select"
@@ -123,6 +141,13 @@ const SummaryAdminPage: React.FC = () => {
         </div>
       </div>
       <div className="mb-3">
+          <label>Users</label>
+          <UserMultiSelect
+            users={users}
+            selectedUsers={selectedUsers}
+            onChange={setSelectedUsers}
+            noUsersSelectedText="All users selected"
+          />
         <label>Range</label>
         <select className="form-select mb-2" value={range} onChange={e => setRange(e.target.value)}>
           <option value="today">Today</option>
@@ -186,31 +211,37 @@ const SummaryAdminPage: React.FC = () => {
                   <th>Break Time</th>
                   <th>Work Logs</th>
                   <th>Breaks</th>
-                  <th>Day Off Requests</th>
-                  <th>Executed Days Off</th>
-                  <th>Approved</th>
-                  <th>Rejected</th>
-                  <th>Pending</th>
-                  <th>Cancelled</th>
                 </tr>
               </thead>
               <tbody>
-                {dailySummaries.map(s => (
-                  <tr key={s.date + (s.userEmail ?? "")}>
-                    <td>{new Date(s.date).toLocaleDateString()}</td>
-                    <td>{s.userName} {s.userSurname}</td>
-                    <td>{s.userEmail}</td>
-                    <td>{Math.floor(s.totalWorkTimeMinutes / 60)}h {s.totalWorkTimeMinutes % 60}min</td>
-                    <td>{Math.floor(s.totalBreakTimeMinutes / 60)}h {s.totalBreakTimeMinutes % 60}min</td>
-                    <td>{s.workLogCount}</td>
-                    <td>{s.breakCount}</td>
-                    <td>{s.dayOffRequestCount}</td>
-                    <td>{s.executedDaysOff}</td>
-                    <td>{s.approvedDaysOff}</td>
-                    <td>{s.rejectedDaysOff}</td>
-                    <td>{s.pendingDaysOff}</td>
-                    <td>{s.cancelledDaysOff}</td>
-                  </tr>
+                {Object.entries(groupedSummaries).map(([email, group]) => (
+                  <React.Fragment key={email}>
+                    <tr style={{ background: "#f3f4f6", fontWeight: "bold" }}>
+                      <td colSpan={1}></td>
+                      <td>
+                        {group[0].userName} {group[0].userSurname}
+                      </td>
+                      <td>{email}</td>
+                      <td>
+                        {Math.floor(getUserTotalWork(group) / 60)}h {getUserTotalWork(group) % 60}min
+                      </td>
+                      <td>
+                        {Math.floor(getUserTotalBreak(group) / 60)}h {getUserTotalBreak(group) % 60}min
+                      </td>
+                      <td colSpan={2}>Total</td>
+                    </tr>
+                    {group.map(s => (
+                      <tr key={s.date + email}>
+                        <td>{new Date(s.date).toLocaleDateString()}</td>
+                        <td>{s.userName} {s.userSurname}</td>
+                        <td>{s.userEmail}</td>
+                        <td>{Math.floor(s.totalWorkTimeMinutes / 60)}h {s.totalWorkTimeMinutes % 60}min</td>
+                        <td>{Math.floor(s.totalBreakTimeMinutes / 60)}h {s.totalBreakTimeMinutes % 60}min</td>
+                        <td>{s.workLogCount}</td>
+                        <td>{s.breakCount}</td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
