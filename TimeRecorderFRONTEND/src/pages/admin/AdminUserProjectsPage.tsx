@@ -11,13 +11,15 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
     const [selectedProject, setSelectedProject] = useState<{ [userId: string]: number }>({});
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
+    const [onlyWithoutProject, setOnlyWithoutProject] = useState(false);
 
     const fetchData = async () => {
         const params: any = {
             pageNumber: page,
             pageSize: PAGE_SIZE,
         };
-        if (search) params.search = search;
+        if (search.length >= 3) params.search = search;
+        if (onlyWithoutProject) params.onlyWithoutProject = true;
         const usersRes = await axios.get<UserDtoWithProject[]>(
             `${apiURL}/api/User/with-projects`,
             { params, withCredentials: true }
@@ -33,7 +35,7 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line
-    }, [page, search]);
+    }, [page, search, onlyWithoutProject]);
 
     const handleAssign = async (userId: string) => {
         const projectId = selectedProject[userId];
@@ -50,7 +52,7 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
     return (
         <div className="container pt-5">
             <h2 className="mb-4 text-center">Assign Project to Users</h2>
-            <div className="mb-3 d-flex">
+            <div className="mb-3 d-flex align-items-center">
                 <input
                     className="form-control me-2"
                     style={{ maxWidth: 300 }}
@@ -58,7 +60,16 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
                     value={search}
                     onChange={e => { setSearch(e.target.value); setPage(1); }}
                 />
-                <button className="btn btn-outline-secondary" onClick={() => setSearch("")}>Clear</button>
+                <button className="btn btn-outline-secondary me-3" onClick={() => setSearch("")}>Clear</button>
+                <label className="form-check-label me-2">
+                    <input
+                        type="checkbox"
+                        className="form-check-input me-1"
+                        checked={onlyWithoutProject}
+                        onChange={e => { setOnlyWithoutProject(e.target.checked); setPage(1); }}
+                    />
+                    Only without project
+                </label>
             </div>
             <table className="table table-bordered">
                 <thead>

@@ -2,22 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { apiURL } from "../../config";
 import UserSelect from "../../components/UserSelect";
-import type { UserDto } from "../../interfaces/types";
+import type { SummaryListDto, SummaryDto, UserDto } from "../../interfaces/types";
 
 type ProjectDto = { id: string; name: string };
-
-type SummaryDto = {
-  totalWorkTimeMinutes: number;
-  totalBreakTimeMinutes: number;
-  workLogCount: number;
-  breakCount: number;
-  dayOffRequestCount: number;
-  executedDaysOff: number;
-  approvedDaysOff: number;
-  rejectedDaysOff: number;
-  pendingDaysOff: number;
-  cancelledDaysOff: number;
-};
 
 const ALL_USERS_OPTION: UserDto = {
   id: "",
@@ -34,6 +21,7 @@ const SummaryAdminPage: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<ProjectDto | null>(null);
   const [projects, setProjects] = useState<ProjectDto[]>([]);
   const [summary, setSummary] = useState<SummaryDto | null>(null);
+  const [dailySummaries, setDailySummaries] = useState<SummaryDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [range, setRange] = useState("today");
 
@@ -75,14 +63,14 @@ const SummaryAdminPage: React.FC = () => {
       if (selectedUser && selectedUser.id) params.userId = selectedUser.id;
       if (selectedProject) params.projectId = selectedProject.id;
 
-      const res = await axios.get(`${apiURL}/api/Summary`, {
+      const res = await axios.get<SummaryListDto>(`${apiURL}/api/Summary/daily`, {
         params,
         withCredentials: true,
       });
-      setSummary(res.data);
+      setDailySummaries(res.data.summaries);
     } catch {
       alert("Error fetching summary");
-      setSummary(null);
+      setDailySummaries([]);
     }
     setLoading(false);
   };
@@ -182,6 +170,51 @@ const SummaryAdminPage: React.FC = () => {
             <li>Pending Days Off: <b>{summary.pendingDaysOff}</b></li>
             <li>Cancelled Days Off: <b>{summary.cancelledDaysOff}</b></li>
           </ul>
+        </div>
+      )}
+      {dailySummaries.length > 0 && (
+        <div className="card p-3 mt-3">
+          <h5>Daily Work Summary</h5>
+          <div style={{ overflowX: "auto" }}>
+            <table className="table table-bordered table-sm">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Work Time</th>
+                  <th>Break Time</th>
+                  <th>Work Logs</th>
+                  <th>Breaks</th>
+                  <th>Day Off Requests</th>
+                  <th>Executed Days Off</th>
+                  <th>Approved</th>
+                  <th>Rejected</th>
+                  <th>Pending</th>
+                  <th>Cancelled</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailySummaries.map(s => (
+                  <tr key={s.date + (s.userEmail ?? "")}>
+                    <td>{new Date(s.date).toLocaleDateString()}</td>
+                    <td>{s.userName} {s.userSurname}</td>
+                    <td>{s.userEmail}</td>
+                    <td>{Math.floor(s.totalWorkTimeMinutes / 60)}h {s.totalWorkTimeMinutes % 60}min</td>
+                    <td>{Math.floor(s.totalBreakTimeMinutes / 60)}h {s.totalBreakTimeMinutes % 60}min</td>
+                    <td>{s.workLogCount}</td>
+                    <td>{s.breakCount}</td>
+                    <td>{s.dayOffRequestCount}</td>
+                    <td>{s.executedDaysOff}</td>
+                    <td>{s.approvedDaysOff}</td>
+                    <td>{s.rejectedDaysOff}</td>
+                    <td>{s.pendingDaysOff}</td>
+                    <td>{s.cancelledDaysOff}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

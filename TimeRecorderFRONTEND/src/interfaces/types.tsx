@@ -79,3 +79,24 @@ export interface UserDtoWithProject {
   email: string;
   project?: ProjectDto | null;
 }
+
+export interface SummaryDto {
+  totalWorkTimeMinutes: number;
+  totalBreakTimeMinutes: number;
+  workLogCount: number;
+  breakCount: number;
+  dayOffRequestCount: number;
+  executedDaysOff: number;
+  approvedDaysOff: number;
+  rejectedDaysOff: number;
+  pendingDaysOff: number;
+  cancelledDaysOff: number;
+  userName?: string;
+  userSurname?: string;
+  userEmail?: string;
+  date: string; // DateTime as ISO string
+}
+
+export interface SummaryListDto {
+  summaries: SummaryDto[];
+}
