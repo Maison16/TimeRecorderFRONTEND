@@ -6,7 +6,7 @@ import { apiURL } from "../config";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import "react-tabs/style/react-tabs.css";
 import UserMultiSelect from "../components/UserMultiSelect";
-import { UserDto, UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
+import { UserDto, UserDtoWithRolesAndAuthStatus, ProjectDto } from "../interfaces/types";
 import { Modal, Button, Form } from "react-bootstrap";
 import { WorkLogType, WorkLogStatus } from "../enums/WorkLogEnums";
 type WorkLogDto = {
@@ -86,6 +86,8 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
   });
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [projects, setProjects] = useState<ProjectDto[]>([]);
+  const [selectedProject, setSelectedProject] = useState<ProjectDto | null>(null);
 
   const isAdmin = user?.roles?.includes("Admin");
 
@@ -129,6 +131,12 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
       setSelectedUser(null);
     }
   }, [user]);
+
+  useEffect(() => {
+    axios.get(`${apiURL}/api/Project`, { withCredentials: true })
+      .then(res => setProjects(res.data))
+      .catch(() => setProjects([]));
+  }, []);
 
   const fetchTeamLogs = async (userIds: string[], date: Date) => {
     setLoading(true);
@@ -228,6 +236,16 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
     setSaving(false);
   };
 
+  const handleProjectSelect = async (projectId: string) => {
+    setSelectedProject(projects.find(p => p.id.toString() === projectId) || null);
+    if (projectId) {
+      const res = await axios.get<UserDto[]>(`${apiURL}/api/User/by-project/${projectId}`, { withCredentials: true });
+      setSelectedUsers(res.data);
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
   const groups = users.map(u => ({
     id: u.id,
     title: `${u.name} ${u.surname}`,
@@ -298,6 +316,17 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
         </TabPanel>
         <TabPanel>
           <div style={{ marginBottom: 16 }}>
+            <Form.Label>Select project:</Form.Label>
+            <Form.Select
+              value={selectedProject?.id?.toString() || ""}
+              onChange={e => handleProjectSelect(e.target.value)}
+              style={{ maxWidth: 300, marginBottom: 8 }}
+            >
+              <option value="">Not choosen</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Form.Select>
             <UserMultiSelect
               users={users}
               selectedUsers={selectedUsers}
