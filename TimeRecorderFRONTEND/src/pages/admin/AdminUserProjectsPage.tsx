@@ -1,84 +1,76 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { apiURL } from "../../config";
-import { UserDtoWithRolesAndAuthStatus } from "../../interfaces/types";
-interface UserDto {
-    id: string;
-    name: string;
-    surname: string;
-    email: string;
-    projectId?: number;
-}
+import { UserDtoWithProject, ProjectDto, UserDtoWithRolesAndAuthStatus } from "../../interfaces/types";
 
-interface ProjectDto {
-    id: number;
-    name: string;
-}
+const PAGE_SIZE = 10;
 
 const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
-    const [users, setUsers] = useState<UserDto[]>([]);
+    const [usersWithProjects, setUsersWithProjects] = useState<UserDtoWithProject[]>([]);
     const [projects, setProjects] = useState<ProjectDto[]>([]);
     const [selectedProject, setSelectedProject] = useState<{ [userId: string]: number }>({});
-    const [userProjects, setUserProjects] = useState<{ [userId: string]: ProjectDto | null }>({});
+    const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const [onlyWithoutProject, setOnlyWithoutProject] = useState(false);
 
-    const fetchUsersAndProjects = async () => {
-        try {
-            const usersRes = await axios.get<UserDto[]>(`${apiURL}/api/User`, { withCredentials: true });
-            setUsers(usersRes.data);
+    const fetchData = async () => {
+        const params: any = {
+            pageNumber: page,
+            pageSize: PAGE_SIZE,
+        };
+        if (search.length >= 3) params.search = search;
+        if (onlyWithoutProject) params.onlyWithoutProject = true;
+        const usersRes = await axios.get<UserDtoWithProject[]>(
+            `${apiURL}/api/User/with-projects`,
+            { params, withCredentials: true }
+        );
+        setUsersWithProjects(usersRes.data);
+
+        if (projects.length === 0) {
             const projectsRes = await axios.get<ProjectDto[]>(`${apiURL}/api/Project`, { withCredentials: true });
             setProjects(projectsRes.data);
-
-            // Pobierz projekt dla każdego usera
-            const userProjectsObj: { [userId: string]: ProjectDto | null } = {};
-            await Promise.all(usersRes.data.map(async (u) => {
-                try {
-                    const projRes = await axios.get<ProjectDto>(`${apiURL}/api/User/${u.id}/project`, { withCredentials: true });
-                    userProjectsObj[u.id] = projRes.data;
-                } catch {
-                    userProjectsObj[u.id] = null;
-                }
-            }));
-            setUserProjects(userProjectsObj);
-        } catch (err) {
-            console.error("Error fetching users or projects:", err);
         }
     };
 
     useEffect(() => {
-        fetchUsersAndProjects();
-    }, []);
+        fetchData();
+        // eslint-disable-next-line
+    }, [page, search, onlyWithoutProject]);
 
     const handleAssign = async (userId: string) => {
         const projectId = selectedProject[userId];
         if (!projectId) return;
-        try {
-            await axios.post(`${apiURL}/api/User/${userId}/assign-project/${projectId}`, {}, { withCredentials: true });
-            // Pobierz tylko projekt dla tego usera
-            try {
-                const projRes = await axios.get<ProjectDto>(`${apiURL}/api/User/${userId}/project`, { withCredentials: true });
-                setUserProjects(prev => ({ ...prev, [userId]: projRes.data }));
-            } catch {
-                setUserProjects(prev => ({ ...prev, [userId]: null }));
-            }
-            console.log(`Assigned user ${userId} to project ${projectId}`);
-        } catch (err) {
-            console.error("Assign error:", err);
-        }
+        await axios.post(`${apiURL}/api/User/${userId}/assign-project/${projectId}`, {}, { withCredentials: true });
+        fetchData();
     };
 
     const handleUnassign = async (userId: string) => {
-        try {
-            await axios.post(`${apiURL}/api/User/${userId}/unassign-project`, {}, { withCredentials: true });
-            setUserProjects(prev => ({ ...prev, [userId]: null }));
-            console.log(`Unassigned project from user ${userId}`);
-        } catch (err) {
-            console.error("Unassign error:", err);
-        }
+        await axios.post(`${apiURL}/api/User/${userId}/unassign-project`, {}, { withCredentials: true });
+        fetchData();
     };
 
     return (
         <div className="container pt-5">
             <h2 className="mb-4 text-center">Assign Project to Users</h2>
+            <div className="mb-3 d-flex align-items-center">
+                <input
+                    className="form-control me-2"
+                    style={{ maxWidth: 300 }}
+                    placeholder="Search user by name, surname or email..."
+                    value={search}
+                    onChange={e => { setSearch(e.target.value); setPage(1); }}
+                />
+                <button className="btn btn-outline-secondary me-3" onClick={() => setSearch("")}>Clear</button>
+                <label className="form-check-label me-2">
+                    <input
+                        type="checkbox"
+                        className="form-check-input me-1"
+                        checked={onlyWithoutProject}
+                        onChange={e => { setOnlyWithoutProject(e.target.checked); setPage(1); }}
+                    />
+                    Only without project
+                </label>
+            </div>
             <table className="table table-bordered">
                 <thead>
                     <tr>
@@ -90,12 +82,15 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
                     </tr>
                 </thead>
                 <tbody>
-                    {users.map(u => (
+                    {usersWithProjects.map(u => (
                         <tr key={u.id}>
                             <td>{u.name} {u.surname}</td>
                             <td>{u.email}</td>
                             <td>
-                                {userProjects[u.id]?.name || "None"}
+                                {u.project
+                                    ? u.project.name
+                                    : <span style={{ color: "#dc2626", fontWeight: "bold" }}>None</span>
+                                }
                             </td>
                             <td>
                                 <select
@@ -117,6 +112,11 @@ const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> =
                     ))}
                 </tbody>
             </table>
+            <div className="d-flex justify-content-between align-items-center mt-3">
+                <button className="btn btn-outline-primary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
+                <span>Page {page}</span>
+                <button className="btn btn-outline-primary" disabled={usersWithProjects.length < PAGE_SIZE} onClick={() => setPage(page + 1)}>Next</button>
+            </div>
         </div>
     );
 };

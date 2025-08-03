@@ -3,6 +3,13 @@ import axios from "axios";
 import { apiURL } from "../config";
 import { UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
 
+function formatDateLocal(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const UserProfilePage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
     const [profile, setProfile] = useState<any>(null);
     const [summary, setSummary] = useState<any>(null);
@@ -18,17 +25,16 @@ const UserProfilePage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ us
             axios.get(`${apiURL}/api/Summary?userId=${user.id}`, { withCredentials: true })
                 .then(r => {
                     setSummary(r.data);
-                    console.log("Summary response:", r.data);
                 })
                 .catch(() => setSummary(null));
             const now = new Date();
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            const dateFrom = firstDay.toISOString();
-            const dateTo = now.toISOString();
+            const dateFrom = formatDateLocal(firstDay);
+            const dateTo = formatDateLocal(now);
             axios.get(`${apiURL}/api/Summary?userId=${user.id}&dateFrom=${dateFrom}&dateTo=${dateTo}`, { withCredentials: true })
                 .then(r => setMonthSummary(r.data))
                 .catch(() => setMonthSummary(null));
-            const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
+            const yearStart = formatDateLocal(new Date(now.getFullYear(), 0, 1));
             axios.get(`${apiURL}/api/Summary?userId=${user.id}&dateFrom=${yearStart}`, { withCredentials: true })
                 .then(r => setYearSummary(r.data))
                 .catch(() => setYearSummary(null));

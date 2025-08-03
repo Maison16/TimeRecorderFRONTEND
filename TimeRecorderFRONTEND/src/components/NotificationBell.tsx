@@ -25,7 +25,6 @@ const NotificationBell: React.FC<{ bellColor?: string }> = ({ bellColor = "#fff"
 
         connection.on("WorkStatusChanged", (data: any) => {
             let msg = "";
-            console.log("Notification data:", data.status);
             if (data.status === "not_started") msg = "You didn't start work today!";
             if (data.status === "unfinished") msg = "You didn't end work today!";
             if (data.status === "long_break") msg = `Your break is longer than ${data.maxBreakTime} minutes. End it as quick as you can!`;

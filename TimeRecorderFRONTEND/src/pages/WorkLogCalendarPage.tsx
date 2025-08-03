@@ -1,25 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Calendar, dateFnsLocalizer } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
-import { enUS } from "date-fns/locale";
+import Timeline, { CustomMarker } from "react-calendar-timeline";
+import "react-calendar-timeline/lib/Timeline.css";
 import axios from "axios";
 import { apiURL } from "../config";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
-import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-tabs/style/react-tabs.css";
-import UserSelect from "../components/UserSelect";
-import { UserDto, UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
+import UserMultiSelect from "../components/UserMultiSelect";
+import { UserDto, UserDtoWithRolesAndAuthStatus, ProjectDto } from "../interfaces/types";
 import { Modal, Button, Form } from "react-bootstrap";
-
-const locales = { "en-US": enUS };
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }),
-  getDay,
-  locales,
-});
-
+import { WorkLogType, WorkLogStatus } from "../enums/WorkLogEnums";
 type WorkLogDto = {
   id: number;
   startTime: string;
@@ -27,59 +16,68 @@ type WorkLogDto = {
   status: number;
   type: number;
   userId: string;
+  createdAt: string;
   duration?: number;
   userName?: string;
   userSurname?: string;
 };
 
-type CalendarEvent = {
-  id: number;
-  title: string;
-  start: Date;
-  end: Date;
-  allDay?: boolean;
-  type: number;
-  status: number;
-  userName?: string;
-  userSurname?: string;
+const mapToTimelineItems = (data: WorkLogDto[]) =>
+  data.map((log) => {
+    let background = "#22c55e";
+    if (log.type === WorkLogType.Break) background = "#f87171";
+    if (log.status === WorkLogStatus.RequiresAttention) background = "#fbbf24";
+    console.log("Mapping work log:", log);
+    return {
+      id: log.id,
+      group: log.userId,
+      title: `${log.type === WorkLogType.Work ? "W" : "B"}`,
+      start_time: new Date(log.startTime).getTime(),
+      end_time: log.endTime
+        ? new Date(log.endTime).getTime()
+        : new Date().getTime(),
+      type: log.type,
+      status: log.status,
+      userName: log.userName,
+      userSurname: log.userSurname,
+      createdAt: log.createdAt,
+      duration: log.duration,
+      itemProps: {
+        style: {
+          background,
+          color: "#222",
+          borderRadius: 6,
+          fontWeight: "bold",
+          border: "1px solid #000000ff",
+        },
+      },
+    };
+  });
+const statusLabels: Record<number, string> = {
+  [WorkLogStatus.Started]: "Started",
+  [WorkLogStatus.RequiresAttention]: "Requires Attention",
+  [WorkLogStatus.Finished]: "Finished",
 };
-
-const eventStyleGetter = (event: CalendarEvent) => {
-  let bg = "#60a5fa";
-  if (event.type === 5) bg = "#facc15";
-  if (event.type === 0) bg = "#22c55e";
-  if (event.status === 5) bg = "#f87171";
-  return {
-    style: {
-      backgroundColor: bg,
-      borderRadius: "6px",
-      color: "#222",
-      padding: "2px 4px",
-      fontWeight: "bold",
-    },
-  };
-};
-
-const mapToEvents = (data: WorkLogDto[]): CalendarEvent[] =>
-  data.map((log) => ({
-    id: log.id,
-    title: `${log.type === 0 ? "Work" : "Break"}${log.userName ? " - " + log.userName : ""}`,
-    start: new Date(log.startTime),
-    end: log.endTime ? new Date(log.endTime) : new Date(log.startTime),
-    type: log.type,
-    status: log.status,
-    userName: log.userName,
-    userSurname: log.userSurname,
-  }));
 
 const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
-  const [myEvents, setMyEvents] = useState<CalendarEvent[]>([]);
-  const [teamEvents, setTeamEvents] = useState<CalendarEvent[]>([]);
+  const [myEvents, setMyEvents] = useState<any[]>([]);
+  const [teamEvents, setTeamEvents] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
+  const [teamCalendarDate, setTeamCalendarDate] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserDto[]>([]);
-  const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
-  const [editWorkLog, setEditWorkLog] = useState<CalendarEvent | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserDto | null>(
+    user && typeof user.name === "string" && user.name !== null && typeof user.surname === "string" && user.surname !== null
+      ? {
+        id: user.id,
+        name: user.name ?? "",
+        surname: user.surname ?? "",
+        email: user.email ?? "",
+      }
+      : null
+  );
+  const [selectedUsers, setSelectedUsers] = useState<UserDto[]>([]);
+  const [editWorkLog, setEditWorkLog] = useState<any | null>(null);
   const [editForm, setEditForm] = useState<{ start: string; end: string; type: number; status: number }>({
     start: "",
     end: "",
@@ -88,35 +86,72 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
   });
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [projects, setProjects] = useState<ProjectDto[]>([]);
+  const [selectedProject, setSelectedProject] = useState<ProjectDto | null>(null);
 
-  // Ustaw isAdmin na podstawie user.roles
   const isAdmin = user?.roles?.includes("Admin");
 
+
   useEffect(() => {
+    if (!user?.id) return;
     const fetchLogs = async () => {
       setLoading(true);
       try {
-        const myRes = await axios.get(`${apiURL}/api/WorkLog/filter`, { withCredentials: true });
-        setMyEvents(mapToEvents(myRes.data));
+        const dateStr = calendarDate.toISOString().slice(0, 10);
+        const url = `${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`;
+        const myRes = await axios.get(url, { withCredentials: true });
+        setMyEvents(mapToTimelineItems(myRes.data));
         const usersRes = await axios.get(`${apiURL}/api/User`, { withCredentials: true });
         setUsers(usersRes.data);
-        setTeamEvents([]);
       } catch (e) {
         setMyEvents([]);
-        setTeamEvents([]);
         setUsers([]);
       } finally {
         setLoading(false);
       }
     };
     fetchLogs();
+  }, [user?.id, calendarDate]);
+
+  useEffect(() => {
+    if (selectedUsers.length > 0) {
+      fetchTeamLogs(selectedUsers.map(user => user.id), teamCalendarDate);
+    }
+  }, [selectedUsers, teamCalendarDate]);
+
+  useEffect(() => {
+    if (user && typeof user.name === "string" && user.name !== null && typeof user.surname === "string" && user.surname !== null) {
+      setSelectedUser({
+        id: user.id,
+        name: user.name ?? "",
+        surname: user.surname ?? "",
+        email: user.email ?? "",
+      });
+    } else {
+      setSelectedUser(null);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    axios.get(`${apiURL}/api/Project`, { withCredentials: true })
+      .then(res => setProjects(res.data))
+      .catch(() => setProjects([]));
   }, []);
 
-  const fetchTeamLogs = async (userId: string) => {
+  const fetchTeamLogs = async (userIds: string[], date: Date) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${apiURL}/api/WorkLog/filter?userId=${userId}`, { withCredentials: true });
-      setTeamEvents(mapToEvents(res.data));
+      const res = await axios.post(
+        `${apiURL}/api/WorkLog/filter-multi`,
+        userIds,
+        {
+          params: {
+            startDay: date.toISOString().slice(0, 10),
+          },
+          withCredentials: true,
+        }
+      );
+      setTeamEvents(mapToTimelineItems(res.data));
     } catch {
       setTeamEvents([]);
     } finally {
@@ -124,16 +159,27 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
     }
   };
 
-  const handleEventClick = (event: CalendarEvent) => {
-    const toLocalInput = (date: Date) => {
+  const handleEventClick = (itemId: number) => {
+    const event =
+      myEvents.find(e => e.id === itemId) ||
+      teamEvents.find(e => e.id === itemId);
+
+    if (!event) {
+      alert("Event not found!");
+      return;
+    }
+    console.log("Selected worklog:", event);
+    const toLocalInput = (timestamp: number) => {
+      const date = new Date(timestamp);
       const pad = (n: number) => n.toString().padStart(2, "0");
       return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     };
-
+    console.log("Editing worklog:", event);
     setEditWorkLog(event);
+    console.log(editWorkLog);
     setEditForm({
-      start: toLocalInput(event.start),
-      end: toLocalInput(event.end),
+      start: toLocalInput(event.start_time),
+      end: toLocalInput(event.end_time),
       type: event.type,
       status: event.status,
     });
@@ -150,85 +196,187 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
         type: editForm.type
       }, { withCredentials: true });
       setEditWorkLog(null);
-      if (selectedUser) fetchTeamLogs(selectedUser.id);
-      else setTeamEvents([]);
+      if (selectedUsers.length > 0) fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
+      else {
+        const dateStr = calendarDate.toISOString().slice(0, 10);
+        const myRes = await axios.get(
+          `${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`,
+          { withCredentials: true }
+        );
+        setMyEvents(mapToTimelineItems(myRes.data));
+        setTeamEvents([]);
+      }
     } catch {
       alert("Error updating worklog");
     }
     setSaving(false);
   };
 
-const handleDeleteWorkLog = async () => {
-  if (!editWorkLog) return;
-  setSaving(true);
-  try {
-    await axios.delete(`${apiURL}/api/WorkLog/${editWorkLog.id}`, { withCredentials: true });
-    setEditWorkLog(null);
-    setShowDeleteConfirm(false);
-    if (selectedUser) {
-      await fetchTeamLogs(selectedUser.id);
-    } else {
-      const myRes = await axios.get(`${apiURL}/api/WorkLog/filter`, { withCredentials: true });
-      setMyEvents(mapToEvents(myRes.data));
-      setTeamEvents([]);
+  const handleDeleteWorkLog = async () => {
+    if (!editWorkLog) return;
+    setSaving(true);
+    try {
+      await axios.delete(`${apiURL}/api/WorkLog/${editWorkLog.id}`, { withCredentials: true });
+      setEditWorkLog(null);
+      setShowDeleteConfirm(false);
+      if (selectedUsers.length > 0) {
+        await fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
+      } else {
+        const dateStr = calendarDate.toISOString().slice(0, 10);
+        const myRes = await axios.get(
+          `${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`,
+          { withCredentials: true }
+        );
+        setMyEvents(mapToTimelineItems(myRes.data));
+        setTeamEvents([]);
+      }
+    } catch {
+      alert("Error deleting worklog");
     }
-  } catch {
-    alert("Error deleting worklog");
-  }
-  setSaving(false);
-};
+    setSaving(false);
+  };
+
+  const handleProjectSelect = async (projectId: string) => {
+    setSelectedProject(projects.find(p => p.id.toString() === projectId) || null);
+    if (projectId) {
+      const res = await axios.get<UserDto[]>(`${apiURL}/api/User/by-project/${projectId}`, { withCredentials: true });
+      setSelectedUsers(res.data);
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  const groups = users.map(u => ({
+    id: u.id,
+    title: `${u.name} ${u.surname}`,
+  }));
+
+  const dayStart = new Date(calendarDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(calendarDate);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const teamDayStart = new Date(teamCalendarDate);
+  teamDayStart.setHours(0, 0, 0, 0);
+  const teamDayEnd = new Date(teamCalendarDate);
+  teamDayEnd.setHours(23, 59, 59, 999);
+
   return (
     <div className="container pt-5" style={{ maxWidth: 1400 }}>
-      <h2 className="mb-4 text-center">WorkLog Calendar</h2>
+      <h2 className="mb-4 text-center">WorkLog Timeline</h2>
       <Tabs>
         <TabList>
           <Tab>My WorkLogs</Tab>
           <Tab>Team WorkLogs</Tab>
         </TabList>
         <TabPanel>
-          <Calendar
-            localizer={localizer}
-            events={myEvents}
-            startAccessor="start"
-            endAccessor="end"
-            views={["day"]}
-            view="day"
-            date={calendarDate}
-            onNavigate={setCalendarDate}
-            style={{ height: 600, width: 900 }}
-            eventPropGetter={eventStyleGetter}
-            step={30}
-            timeslots={2}
-            onSelectEvent={handleEventClick}
-          />
+          <div style={{ marginBottom: 16 }}>
+            <Form.Label>Choose day:</Form.Label>
+            <Form.Control
+              type="date"
+              value={calendarDate.toISOString().slice(0, 10)}
+              onChange={e => {
+                const value = e.target.value;
+                if (!value) return;
+                const date = new Date(value);
+                setCalendarDate(isNaN(date.getTime()) ? new Date() : date);
+              }}
+              style={{ maxWidth: 200 }}
+            />
+          </div>
+          <Timeline
+            key={calendarDate.toISOString() + myEvents.length}
+            groups={[{ id: user.id, title: `${user.name} ${user.surname}` }]}
+            items={myEvents}
+            visibleTimeStart={dayStart.getTime()}
+            visibleTimeEnd={dayEnd.getTime()}
+            onItemClick={handleEventClick}
+            canMove={false}
+            canResize={false}
+            sidebarWidth={120}
+            lineHeight={32}
+            onTimeChange={(start, end) => {
+              setCalendarDate(new Date(start));
+            }}
+          >
+            <CustomMarker date={Date.now()}>
+              {({ styles }) => (
+                <div
+                  style={{
+                    ...styles,
+                    background: "red",
+                    width: "2px",
+                    height: "100%",
+                    zIndex: 10,
+                  }}
+                />
+              )}
+            </CustomMarker>
+          </Timeline>
         </TabPanel>
         <TabPanel>
           <div style={{ marginBottom: 16 }}>
-            <UserSelect
+            <Form.Label>Select project:</Form.Label>
+            <Form.Select
+              value={selectedProject?.id?.toString() || ""}
+              onChange={e => handleProjectSelect(e.target.value)}
+              style={{ maxWidth: 300, marginBottom: 8 }}
+            >
+              <option value="">Not choosen</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Form.Select>
+            <UserMultiSelect
               users={users}
-              selectedUser={selectedUser}
-              onChange={user => {
-                setSelectedUser(user);
-                if (user) fetchTeamLogs(user.id);
-                else setTeamEvents([]);
+              selectedUsers={selectedUsers}
+              onChange={setSelectedUsers}
+            />
+            <Form.Label>Choose day:</Form.Label>
+            <Form.Control
+              type="date"
+              value={teamCalendarDate.toISOString().slice(0, 10)}
+              onChange={e => {
+                const value = e.target.value;
+                if (!value) return;
+                const date = new Date(value);
+                setTeamCalendarDate(isNaN(date.getTime()) ? new Date() : date);
               }}
+              style={{ maxWidth: 200 }}
             />
           </div>
-          <Calendar
-            localizer={localizer}
-            events={teamEvents}
-            startAccessor="start"
-            endAccessor="end"
-            views={["day"]}
-            view="day"
-            date={calendarDate}
-            onNavigate={setCalendarDate}
-            style={{ height: 600, width: 900 }}
-            eventPropGetter={eventStyleGetter}
-            step={30}
-            timeslots={2}
-            onSelectEvent={handleEventClick}
-          />
+          <Timeline
+            key={teamCalendarDate.toISOString() + teamEvents.length}
+            groups={selectedUsers.map(u => ({
+              id: u.id,
+              title: `${u.name} ${u.surname}`,
+            }))}
+            items={teamEvents}
+            visibleTimeStart={teamDayStart.getTime()}
+            visibleTimeEnd={teamDayEnd.getTime()}
+            onItemClick={handleEventClick}
+            canMove={false}
+            canResize={false}
+            sidebarWidth={120}
+            lineHeight={32}
+            onTimeChange={(start, end) => {
+              setTeamCalendarDate(new Date(start));
+            }}
+          >
+            <CustomMarker date={Date.now()}>
+              {({ styles }) => (
+                <div
+                  style={{
+                    ...styles,
+                    background: "red",
+                    width: "2px",
+                    height: "100%",
+                    zIndex: 10,
+                  }}
+                />
+              )}
+            </CustomMarker>
+          </Timeline>
         </TabPanel>
       </Tabs>
 
@@ -268,6 +416,42 @@ const handleDeleteWorkLog = async () => {
                 <option value={5}>Break</option>
               </Form.Select>
             </Form.Group>
+            <Form.Group>
+              <Form.Label>Status</Form.Label>
+              <div style={{ fontWeight: "bold", marginBottom: 8 }}>
+                {statusLabels[editForm.status] ?? editForm.status}
+              </div>
+              {editForm.status === WorkLogStatus.RequiresAttention && editWorkLog?.createdAt && (
+                <div style={{ color: "#d97706", marginBottom: 8 }}>
+                  Created at: {new Date(editWorkLog.createdAt).toLocaleString()}
+                </div>
+              )}
+              {typeof editWorkLog?.duration === "number" && (
+                <div style={{ color: "#2563eb", marginBottom: 8 }}>
+                  {editWorkLog.duration === 0
+                    ? "Still in progress"
+                    : editWorkLog.duration >= 60
+                      ? `Duration: ${Math.floor(editWorkLog.duration / 60)} h ${editWorkLog.duration % 60} min`
+                      : `Duration: ${editWorkLog.duration} min`}
+                </div>
+              )}
+              {editWorkLog?.createdAt && editWorkLog?.start_time && editWorkLog.status === WorkLogStatus.RequiresAttention && (() => {
+                const created = new Date(editWorkLog.createdAt);
+                const started = new Date(editWorkLog.start_time);
+                const sameHourMinute =
+                  created.getHours() === started.getHours() &&
+                  created.getMinutes() === started.getMinutes();
+                return sameHourMinute ? (
+                  <div style={{ color: "#dc2626", fontWeight: "bold", marginBottom: 8 }}>
+                    Overtime
+                  </div>
+                ) : (
+                  <div style={{ color: "#ea580c", fontWeight: "bold", marginBottom: 8 }}>
+                    Past start
+                  </div>
+                );
+              })()}
+            </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
@@ -278,6 +462,71 @@ const handleDeleteWorkLog = async () => {
               </Button>
               <Button variant="primary" onClick={handleSaveEdit} disabled={saving}>
                 {saving ? "Saving..." : "Save"}
+              </Button>
+            </>
+          )}
+          {isAdmin && editForm.status === WorkLogStatus.RequiresAttention && (
+            <>
+              <Button
+                variant="success"
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    await axios.post(
+                      `${apiURL}/api/WorkLog/confirm-past/${editWorkLog.id}`,
+                      {},
+                      { withCredentials: true }
+                    );
+                    setEditWorkLog(null);
+                    if (selectedUsers.length > 0) fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
+                    else {
+                      const dateStr = calendarDate.toISOString().slice(0, 10);
+                      const myRes = await axios.get(
+                        `${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`,
+                        { withCredentials: true }
+                      );
+                      setMyEvents(mapToTimelineItems(myRes.data));
+                      setTeamEvents([]);
+                    }
+                  } catch {
+                    alert("Error confirming worklog");
+                  }
+                  setSaving(false);
+                }}
+                disabled={saving}
+                style={{ marginRight: 8 }}
+              >
+                Confirm
+              </Button>
+              <Button
+                variant="warning"
+                onClick={async () => {
+                  setSaving(true);
+                  try {
+                    await axios.post(
+                      `${apiURL}/api/WorkLog/reject-past/${editWorkLog.id}`,
+                      {},
+                      { withCredentials: true }
+                    );
+                    setEditWorkLog(null);
+                    if (selectedUsers.length > 0) fetchTeamLogs(selectedUsers.map(user => user.id), calendarDate);
+                    else {
+                      const dateStr = calendarDate.toISOString().slice(0, 10);
+                      const myRes = await axios.get(
+                        `${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`,
+                        { withCredentials: true }
+                      );
+                      setMyEvents(mapToTimelineItems(myRes.data));
+                      setTeamEvents([]);
+                    }
+                  } catch {
+                    alert("Error rejecting worklog");
+                  }
+                  setSaving(false);
+                }}
+                disabled={saving}
+              >
+                Reject
               </Button>
             </>
           )}
@@ -298,7 +547,7 @@ const handleDeleteWorkLog = async () => {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
             Cancel
-             </Button>
+          </Button>
           <Button variant="danger" onClick={handleDeleteWorkLog} disabled={saving}>
             {saving ? "Deleting..." : "Delete"}
           </Button>

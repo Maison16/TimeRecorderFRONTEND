@@ -11,11 +11,11 @@ interface Props {
 const UserSelect: React.FC<Props> = ({ users, selectedUser, onChange }) => (
   <Select<UserDto>
     options={users}
-    getOptionLabel={(u) => `${u.name} ${u.surname}`}
+    getOptionLabel={(u) => `${u.email}`}
     getOptionValue={(u) => u.id}
     value={selectedUser}
     onChange={(u) => onChange(u || null)}
-    placeholder="Select user..."
+    placeholder="Select user..."  
     menuPortalTarget={document.body}
     styles={{
       menuPortal: (base) => ({ ...base, zIndex: 9999 }),

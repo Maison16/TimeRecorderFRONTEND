@@ -65,3 +65,38 @@ export interface Settings {
   syncUsersDays: SyncDayOfWeek[];    // only for Weekly
   syncUsersMonthDay: number;         // only for Monthly
 }
+
+export interface ProjectDto {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+export interface UserDtoWithProject {
+  id: string;
+  name: string;
+  surname: string;
+  email: string;
+  project?: ProjectDto | null;
+}
+
+export interface SummaryDto {
+  totalWorkTimeMinutes: number;
+  totalBreakTimeMinutes: number;
+  workLogCount: number;
+  breakCount: number;
+  dayOffRequestCount: number;
+  executedDaysOff: number;
+  approvedDaysOff: number;
+  rejectedDaysOff: number;
+  pendingDaysOff: number;
+  cancelledDaysOff: number;
+  userName?: string;
+  userSurname?: string;
+  userEmail?: string;
+  date: string; // DateTime as ISO string
+}
+
+export interface SummaryListDto {
+  summaries: SummaryDto[];
+}
