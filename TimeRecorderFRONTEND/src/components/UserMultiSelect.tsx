@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { UserDto } from "../interfaces/types";
 import { Form, InputGroup, Button, ListGroup } from "react-bootstrap";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 interface Props {
   users: UserDto[];
@@ -11,6 +12,7 @@ interface Props {
 
 const UserMultiSelect: React.FC<Props> = ({ users, selectedUsers, onChange, noUsersSelectedText }) => {
   const [search, setSearch] = useState("");
+  const [showSelected, setShowSelected] = useState(false);
 
   const filtered = users.filter(
     u =>
@@ -55,24 +57,37 @@ const UserMultiSelect: React.FC<Props> = ({ users, selectedUsers, onChange, noUs
           ))}
         </ListGroup>
       )}
-      <Form.Label>Selected users:</Form.Label>
-      <ListGroup>
-        {selectedUsers.length === 0 && (
+      {selectedUsers.length > 0 && (
+        <Button
+          size="sm"
+          variant="outline-primary"
+          onClick={() => setShowSelected(v => !v)}
+          style={{ marginBottom: 4 }}
+        >
+          {showSelected ? <FaChevronUp /> : <FaChevronDown />} {showSelected ? "Hide" : "Show"} selected users ({selectedUsers.length})
+        </Button>
+      )}
+      {showSelected && selectedUsers.length > 0 && (
+        <ListGroup style={{ maxHeight: 120, overflowY: "auto", marginBottom: 8 }}>
+          {selectedUsers.map(u => (
+            <ListGroup.Item key={u.id} className="d-flex justify-content-between align-items-center">
+              <span>
+                {u.email} <span style={{ color: "#888" }}>({u.name} {u.surname})</span>
+              </span>
+              <Button variant="outline-danger" size="sm" onClick={() => handleRemove(u.id)}>
+                ×
+              </Button>
+            </ListGroup.Item>
+          ))}
+        </ListGroup>
+      )}
+      {selectedUsers.length === 0 && (
+        <ListGroup>
           <ListGroup.Item disabled>
             {noUsersSelectedText || "No users selected"}
           </ListGroup.Item>
-        )}
-        {selectedUsers.map(u => (
-          <ListGroup.Item key={u.id} className="d-flex justify-content-between align-items-center">
-            <span>
-              {u.email} <span style={{ color: "#888" }}>({u.name} {u.surname})</span>
-            </span>
-            <Button variant="outline-danger" size="sm" onClick={() => handleRemove(u.id)}>
-              ×
-            </Button>
-          </ListGroup.Item>
-        ))}
-      </ListGroup>
+        </ListGroup>
+      )}
     </div>
   );
 };
