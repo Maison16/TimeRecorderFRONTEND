@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import type { UserDtoWithRolesAndAuthStatus } from '../interfaces/types';
-import { apiURL } from '../config';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {

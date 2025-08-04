@@ -7,7 +7,7 @@ import { UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
 
 const POLL_INTERVAL = 100000; // 100 seconds
 
-const WorkStatusWidget: React.FC<{ userRoles: string[]; user: UserDtoWithRolesAndAuthStatus }> = ({ userRoles, user }) => {
+const WorkStatusWidget: React.FC<{ userRoles: string[]; user: UserDtoWithRolesAndAuthStatus }> = ({ userRoles }) => {
   if (!userRoles || userRoles.length === 0) {
     return null;
   }

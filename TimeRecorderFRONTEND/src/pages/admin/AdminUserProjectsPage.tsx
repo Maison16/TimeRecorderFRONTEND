@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { apiURL } from "../../config";
-import { UserDtoWithProject, ProjectDto, UserDtoWithRolesAndAuthStatus } from "../../interfaces/types";
+import { UserDtoWithProject, ProjectDto } from "../../interfaces/types";
 
 const PAGE_SIZE = 10;
 
-const AdminUserProjectsPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = ({ user }) => {
+const AdminUserProjectsPage: React.FC = () => {
     const [usersWithProjects, setUsersWithProjects] = useState<UserDtoWithProject[]>([]);
     const [projects, setProjects] = useState<ProjectDto[]>([]);
     const [selectedProject, setSelectedProject] = useState<{ [userId: string]: number }>({});

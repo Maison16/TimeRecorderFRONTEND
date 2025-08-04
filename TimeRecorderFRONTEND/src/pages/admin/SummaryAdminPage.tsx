@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import qs from "qs";
 import { apiURL } from "../../config";
-import UserSelect from "../../components/UserSelect";
 import UserMultiSelect from "../../components/UserMultiSelect";
 import type { SummaryListDto, SummaryDto, UserDto } from "../../interfaces/types";
 
@@ -18,11 +17,10 @@ const ALL_USERS_OPTION: UserDto = {
 const SummaryAdminPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserDto | null>(ALL_USERS_OPTION);
   const [users, setUsers] = useState<UserDto[]>([]);
   const [selectedProject, setSelectedProject] = useState<ProjectDto | null>(null);
   const [projects, setProjects] = useState<ProjectDto[]>([]);
-  const [summary, setSummary] = useState<SummaryDto | null>(null);
+  const [summary, ] = useState<SummaryDto | null>(null);
   const [dailySummaries, setDailySummaries] = useState<SummaryDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [range, setRange] = useState("today");

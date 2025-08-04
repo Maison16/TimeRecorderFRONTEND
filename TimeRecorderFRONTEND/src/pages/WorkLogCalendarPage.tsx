@@ -64,9 +64,9 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
   const [teamEvents, setTeamEvents] = useState<any[]>([]);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [teamCalendarDate, setTeamCalendarDate] = useState(new Date());
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [users, setUsers] = useState<UserDto[]>([]);
-  const [selectedUser, setSelectedUser] = useState<UserDto | null>(
+  const [, setSelectedUser] = useState<UserDto | null>(
     user && typeof user.name === "string" && user.name !== null && typeof user.surname === "string" && user.surname !== null
       ? {
         id: user.id,
@@ -246,10 +246,6 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
     }
   };
 
-  const groups = users.map(u => ({
-    id: u.id,
-    title: `${u.name} ${u.surname}`,
-  }));
 
   const dayStart = new Date(calendarDate);
   dayStart.setHours(0, 0, 0, 0);
@@ -295,7 +291,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
             canResize={false}
             sidebarWidth={120}
             lineHeight={32}
-            onTimeChange={(start, end) => {
+            onTimeChange={(start) => {
               setCalendarDate(new Date(start));
             }}
           >
@@ -359,7 +355,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
             canResize={false}
             sidebarWidth={120}
             lineHeight={32}
-            onTimeChange={(start, end) => {
+            onTimeChange={(start) => {
               setTeamCalendarDate(new Date(start));
             }}
           >
