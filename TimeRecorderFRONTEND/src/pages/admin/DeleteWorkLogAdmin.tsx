@@ -46,7 +46,7 @@ const DeleteWorkLogAdmin: React.FC = () => {
     const [startDay, setStartDay] = useState<string>("");
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(10);
-    const [totalCount, setTotalCount] = useState<number>(0);
+    const [, setTotalCount] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState<"delete" | "restore">("delete");
 
@@ -108,7 +108,6 @@ const DeleteWorkLogAdmin: React.FC = () => {
         setSelectedIds([]); 
     };
 
-    const totalPages = Math.ceil(totalCount / pageSize);
     const hasNextPage = logs.length === pageSize; 
     const hasPrevPage = pageNumber > 1;
 

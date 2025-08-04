@@ -1,4 +1,3 @@
-import React from "react";
 
 const LegendItem = ({ color, label }: { color: string; label: string }) => (
   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>

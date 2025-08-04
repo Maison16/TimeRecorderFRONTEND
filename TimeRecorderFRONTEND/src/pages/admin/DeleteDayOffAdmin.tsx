@@ -36,7 +36,7 @@ const DeleteDayOffAdmin: React.FC = () => {
     const [dateEnd, setDateEnd] = useState<string>("");
     const [pageNumber, setPageNumber] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(10);
-    const [totalCount, setTotalCount] = useState<number>(0);
+    const [, setTotalCount] = useState<number>(0);
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState<"delete" | "restore">("delete");
 

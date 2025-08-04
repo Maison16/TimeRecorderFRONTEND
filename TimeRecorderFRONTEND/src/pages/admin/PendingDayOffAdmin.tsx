@@ -85,7 +85,7 @@ const PendingDayOffAdmin: React.FC = () => {
     }
   };
 
-  const eventStyleGetter = (ev: CalendarEvent) => ({
+  const eventStyleGetter = () => ({
     style: {
       backgroundColor: "#facc15", 
       borderRadius: "6px",

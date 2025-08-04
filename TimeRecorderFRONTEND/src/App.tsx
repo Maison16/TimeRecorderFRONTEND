@@ -30,7 +30,7 @@ const App: React.FC = () => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+  const [isAuthenticated] = useState<boolean>(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
       const parsed = JSON.parse(stored);
@@ -257,7 +257,7 @@ if (!isAuthenticated) {
         />
         <Route
           path="/dayoff"
-          element={user?.isAuthenticated ? <CalendarDayOffPage user={user} /> : <Navigate to="/" />}
+          element={user?.isAuthenticated ? <CalendarDayOffPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/pendingAdmin"
@@ -277,7 +277,7 @@ if (!isAuthenticated) {
         />
         <Route
           path="/admin/user-projects"
-          element={user?.isAuthenticated && isAdmin ? <AdminUserProjectsPage user={user} /> : <Navigate to="/" />}
+          element={user?.isAuthenticated && isAdmin ? <AdminUserProjectsPage /> : <Navigate to="/" />}
         />
         <Route
           path="/admin/summary"
