@@ -1,2 +1,2 @@
 export const apiURL = import.meta.env.DEV
-  ? 'https://localhost:7023':"";
+  ? 'https://timerecorder-backend-gmarf2eubeb5cxhu.westeurope-01.azurewebsites.net/':"";
