@@ -1,4 +1,4 @@
-import React, { useEffect, useState} from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Timeline, { CustomMarker } from "react-calendar-timeline";
 import "react-calendar-timeline/lib/Timeline.css";
 import axios from "axios";
@@ -257,6 +257,17 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
   const teamDayEnd = new Date(teamCalendarDate);
   teamDayEnd.setHours(23, 59, 59, 999);
 
+  // Dodaj referencje do aktualnych wartości
+  const calendarDateRef = useRef(calendarDate);
+  const teamCalendarDateRef = useRef(teamCalendarDate);
+  const selectedUsersRef = useRef(selectedUsers);
+  const userRef = useRef(user);
+
+  useEffect(() => { calendarDateRef.current = calendarDate; }, [calendarDate]);
+  useEffect(() => { teamCalendarDateRef.current = teamCalendarDate; }, [teamCalendarDate]);
+  useEffect(() => { selectedUsersRef.current = selectedUsers; }, [selectedUsers]);
+  useEffect(() => { userRef.current = user; }, [user]);
+
   useEffect(() => {
     if (!window.hubConnection) return;
 
@@ -270,14 +281,17 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
           "break_started"
         ].includes(data.status)
       ) {
-        const dateStr = calendarDate.toISOString().slice(0, 10);
-        axios
-          .get(`${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`, { withCredentials: true })
-          .then(res => {
-            setMyEvents(mapToTimelineItems(res.data));
-          });
-        if (selectedUsers.length > 0) {
-          fetchTeamLogs(selectedUsers.map(user => user.id), teamCalendarDate);
+        const dateStr = calendarDateRef.current.toISOString().slice(0, 10);
+        const userId = userRef.current?.id;
+        if (userId) {
+          axios
+            .get(`${apiURL}/api/WorkLog/filter?userId=${userId}&date=${dateStr}`, { withCredentials: true })
+            .then(res => {
+              setMyEvents(mapToTimelineItems(res.data));
+            });
+        }
+        if (selectedUsersRef.current.length > 0) {
+          fetchTeamLogs(selectedUsersRef.current.map(user => user.id), teamCalendarDateRef.current);
         } else {
           setTeamEvents([]);
         }
@@ -291,7 +305,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
         window.hubConnection.off("WorkLogStatusChanged", handler);
       }
     };
-  }, [selectedUsers, teamCalendarDate, calendarDate, user?.id]);
+  }, []); 
 
   return (
     <div className="container pt-5" style={{ maxWidth: 1400 }}>
