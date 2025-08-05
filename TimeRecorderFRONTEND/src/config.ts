@@ -1,2 +1,1 @@
-export const apiURL = import.meta.env.DEV
-  ? 'https://timerecorder-backend-gmarf2eubeb5cxhu.westeurope-01.azurewebsites.net':"";
+export const apiURL = import.meta.env.VITE_API_URL;
