@@ -27,7 +27,7 @@ const NotificationBell: React.FC<{ bellColor?: string }> = ({ bellColor = "#fff"
             if( data.status === "work_ended") msg = "Your work log has been ended!";
             if (data.status === "work_started") msg = "Your work log has been started!";
             if( data.status === "break_started") msg = "Your break has been started!";
-            if (data.status === "still_here") msg = "Are you still here?";
+            if (data.status === "still_here") msg = "Are you still here? Your status on teams is BrB!";
 
             if (msg) {
                 playSound();

@@ -158,6 +158,7 @@ const App: React.FC = () => {
             if (loginRes.ok) {
               const loginData = await loginRes.json();
               setUser(loginData);
+              initSignalR();
               localStorage.setItem("user", JSON.stringify(loginData));
               setIsLoadingUser(false);
               setIsAdmin(!!loginData.roles?.includes("Admin"));
