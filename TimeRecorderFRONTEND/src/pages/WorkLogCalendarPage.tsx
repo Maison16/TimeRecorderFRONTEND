@@ -261,7 +261,6 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
     if (!window.hubConnection) return;
 
     const handler = (data: any) => {
-
       if (
         [
           "break_ended",
@@ -271,16 +270,16 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
           "break_started"
         ].includes(data.status)
       ) {
+        const dateStr = calendarDate.toISOString().slice(0, 10);
+        axios
+          .get(`${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`, { withCredentials: true })
+          .then(res => {
+            setMyEvents(mapToTimelineItems(res.data));
+          });
         if (selectedUsers.length > 0) {
           fetchTeamLogs(selectedUsers.map(user => user.id), teamCalendarDate);
         } else {
-          const dateStr = calendarDate.toISOString().slice(0, 10);
-          axios
-            .get(`${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`, { withCredentials: true })
-            .then(res => {
-              setMyEvents(mapToTimelineItems(res.data));
-              setTeamEvents([]);
-            });
+          setTeamEvents([]);
         }
       }
     };
