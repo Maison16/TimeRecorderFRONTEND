@@ -45,7 +45,7 @@ const PendingDayOffAdmin: React.FC = () => {
       const end = stripTimeZone(e.dateEnd);
       const fixedEnd = new Date(end.getTime() + 24 * 60 * 60 * 1000);
       return {
-        title: `${e.reason ?? "Day off"}`,
+        title: e.reason && e.reason.trim() !== "" ? e.reason : "-No reason-",
         start,
         end: fixedEnd,
         allDay: true,

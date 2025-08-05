@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { apiURL } from "../config";
 import { Button, Card, Spinner } from "react-bootstrap";
-import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { UserDtoWithRolesAndAuthStatus } from "../interfaces/types";
+import { WorkLogType } from "../enums/WorkLogEnums";
 
 const POLL_INTERVAL = 100000; // 100 seconds
 
@@ -31,21 +31,18 @@ const WorkStatusWidget: React.FC<{ userRoles: string[]; user: UserDtoWithRolesAn
   };
 
   useEffect(() => {
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${apiURL}/workStatusHub`, { withCredentials: true })
-      .configureLogging(LogLevel.Information)
-      .build();
+    if (!window.hubConnection) return;
 
-    connection.start()
-      .then(() => console.log("SignalR connected"))
-      .catch(err => console.error("SignalR error:", err));
-
-    connection.on("WorkStatusChanged", () => {
+    const handler = () => {
       fetchStatus();
-    });
+    };
+
+    window.hubConnection.on("WorkStatusChanged", handler);
 
     return () => {
-      connection.stop();
+      if( window.hubConnection) {
+      window.hubConnection.off("WorkStatusChanged", handler);
+      }
     };
   }, []);
 
@@ -170,18 +167,18 @@ const WorkStatusWidget: React.FC<{ userRoles: string[]; user: UserDtoWithRolesAn
             {!workLog && (
               <Button size="sm" variant="success" onClick={handleStartWork}>Start Work</Button>
             )}
-            {workLog && workLog.type === 0 && (
+            {workLog && workLog.type === WorkLogType.Work && (
               <>
                 <Button size="sm" variant="warning" onClick={handleStartBreak}>Start Break</Button>
                 <Button size="sm" variant="danger" onClick={handleEndWork}>End Work</Button>
               </>
             )}
-            {workLog && workLog.type === 5 && (
+            {workLog && workLog.type === WorkLogType.Break && (
               <>
                 <Button
                   size="sm"
                   style={{ background: "#0d6efd", borderColor: "#0d6efd", color: "#fff" }}
-                  onClick={handleEndBreak}
+                  onClick={handleStartWork}
                 >
                   End Break
                 </Button>

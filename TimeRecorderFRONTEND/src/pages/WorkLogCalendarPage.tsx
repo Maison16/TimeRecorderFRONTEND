@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState} from "react";
 import Timeline, { CustomMarker } from "react-calendar-timeline";
 import "react-calendar-timeline/lib/Timeline.css";
 import axios from "axios";
@@ -256,6 +256,43 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
   teamDayStart.setHours(0, 0, 0, 0);
   const teamDayEnd = new Date(teamCalendarDate);
   teamDayEnd.setHours(23, 59, 59, 999);
+
+  useEffect(() => {
+    if (!window.hubConnection) return;
+
+    const handler = (data: any) => {
+
+      if (
+        [
+          "break_ended",
+          "auto_work_ended",
+          "work_ended",
+          "work_started",
+          "break_started"
+        ].includes(data.status)
+      ) {
+        if (selectedUsers.length > 0) {
+          fetchTeamLogs(selectedUsers.map(user => user.id), teamCalendarDate);
+        } else {
+          const dateStr = calendarDate.toISOString().slice(0, 10);
+          axios
+            .get(`${apiURL}/api/WorkLog/filter?userId=${user.id}&date=${dateStr}`, { withCredentials: true })
+            .then(res => {
+              setMyEvents(mapToTimelineItems(res.data));
+              setTeamEvents([]);
+            });
+        }
+      }
+    };
+
+    window.hubConnection.on("WorkLogStatusChanged", handler);
+
+    return () => {
+      if (window.hubConnection) {
+        window.hubConnection.off("WorkLogStatusChanged", handler);
+      }
+    };
+  }, [selectedUsers, teamCalendarDate, calendarDate, user?.id]);
 
   return (
     <div className="container pt-5" style={{ maxWidth: 1400 }}>

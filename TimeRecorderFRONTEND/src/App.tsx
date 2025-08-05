@@ -19,6 +19,7 @@ import WorkLogWidget from './components/WorkStatusWidget';
 import WorkLogCalendarPage from './pages/WorkLogCalendarPage';
 import DeleteWorkLogAdmin from './pages/admin/DeleteWorkLogAdmin';
 import SummaryAdminPage from './pages/admin/SummaryAdminPage';
+import { initSignalR } from './signalr-init';
 
 const App: React.FC = () => {
   const { instance, accounts } = useMsal();
@@ -53,6 +54,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) {
       setIsLoadingUser(true);
+      initSignalR();
       fetch(`${apiURL}/api/User/profile`, {
         method: 'GET',
         credentials: 'include',
