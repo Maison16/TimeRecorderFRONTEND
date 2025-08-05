@@ -187,7 +187,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    fetch('/api/auth/logout', {
+    fetch(`${apiURL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     }).then(() => {
