@@ -1,6 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
-import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
-import { apiURL } from "../config";
+import React, { useEffect, useState } from "react";
 import { Badge, Dropdown, Button } from "react-bootstrap";
 
 type Notification = {

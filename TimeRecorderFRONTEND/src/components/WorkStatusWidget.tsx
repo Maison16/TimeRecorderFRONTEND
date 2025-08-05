@@ -105,17 +105,6 @@ const WorkStatusWidget: React.FC<{ userRoles: string[]; user: UserDtoWithRolesAn
       setLoading(false);
     }
   };
-  const handleEndBreak = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await axios.post(`${apiURL}/api/WorkLog/end/${workLog.id}`, {}, { withCredentials: true });
-      // SignalR odświeży status
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to end break.");
-      setLoading(false);
-    }
-  };
 
   const formatTime = (sec: number) => {
     const h = Math.floor(sec / 3600);
