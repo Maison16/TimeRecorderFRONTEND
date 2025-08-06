@@ -511,7 +511,7 @@ const WorkLogCalendarPage: React.FC<{ user: UserDtoWithRolesAndAuthStatus }> = (
               </Button>
             </>
           )}
-          {isAdmin && editForm.status === WorkLogStatus.RequiresAttention && (
+          {isAdmin && editForm.status === WorkLogStatus.RequiresAttention && editForm.end != null && (
             <>
               <Button
                 variant="success"
