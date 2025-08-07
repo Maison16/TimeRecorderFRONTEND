@@ -225,33 +225,39 @@ const App: React.FC = () => {
     </div>
   );
 
-if (isLoadingUser || inProgress !== "none") {
-  return (
-    <>
-      {sessionExpired && <SessionExpiredModal />}
-      {rateLimited && <RateLimitedModal />}
-      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
-      <Loading />
-    </>
-  );
-}
+  if (isLoadingUser || inProgress !== "none") {
+    return (
+      <>
+        {sessionExpired && <SessionExpiredModal />}
+        {rateLimited && <RateLimitedModal />}
+        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
+        <Loading />
+      </>
+    );
+  }
 
-if (!isAuthenticated) {
-  return (
-    <>
-      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </>
-  );
-}
+  if (!isAuthenticated) {
+    return (
+      <>
+        <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={[]} user={null} />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </>
+    );
+  }
   return (
     <>
       {sessionExpired && <SessionExpiredModal />}
       {rateLimited && <RateLimitedModal />}
-      <NavBar accounts={accounts} onLogin={handleLogin} onLogout={handleLogout} userRoles={user?.roles || []} user={user} />
+      <NavBar
+        accounts={accounts}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        userRoles={user?.isAuthenticated ? user.roles || [] : []}
+        user={user?.isAuthenticated ? user : null}
+      />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route
