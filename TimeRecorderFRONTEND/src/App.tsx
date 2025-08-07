@@ -161,6 +161,7 @@ const App: React.FC = () => {
               initSignalR();
               localStorage.setItem("user", JSON.stringify(loginData));
               setIsLoadingUser(false);
+              window.location.reload();
               setIsAdmin(!!loginData.roles?.includes("Admin"));
               navigate('/dashboard');
             } else {
